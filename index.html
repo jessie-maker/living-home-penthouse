@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Penthouse Tea Room</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    background: #0a0a0a;
+    font-family: 'Inter', -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    color: #fff;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .room-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .room-bg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0; left: 0;
+    z-index: 0;
+  }
+
+  .room-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0; left: 0;
+    z-index: 0;
+  }
+
+  .sound-toggle {
+    position: absolute;
+    bottom: 60px;
+    right: 20px;
+    z-index: 30;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .sound-toggle:hover {
+    background: rgba(0,0,0,0.7);
+    transform: scale(1.1);
+  }
+
+  .hotspot {
+    position: absolute;
+    z-index: 10;
+    cursor: pointer;
+    border: 2px solid rgba(255,255,255,0);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hotspot::after {
+    content: '';
+    width: 12px; height: 12px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    box-shadow: 0 0 8px rgba(255,255,255,0.6);
+  }
+
+  .hotspot:hover {
+    border-color: rgba(255,255,255,0.4);
+    transform: scale(1.1);
+  }
+
+  .hotspot .label {
+    position: absolute;
+    bottom: -28px;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background: rgba(0,0,0,0.6);
+    padding: 3px 8px;
+    border-radius: 10px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    backdrop-filter: blur(10px);
+  }
+
+  .hotspot:hover .label { opacity: 1; }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.6); opacity: 0.4; }
+  }
+
+  #hs-camera { top: 77%; left: 18%; width: 50px; height: 50px; }
+  #hs-tea { top: 72%; left: 48%; width: 50px; height: 50px; }
+  #hs-skills { top: 48%; left: 48%; width: 50px; height: 50px; }
+  #hs-chat { top: 75%; left: 72%; width: 50px; height: 50px; }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+    animation: fadeIn 0.3s ease;
+  }
+
+  .modal-overlay.active { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+  .modal-card {
+    background: rgba(28, 28, 30, 0.95);
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-width: 420px;
+    max-height: 85vh;
+    padding: 24px;
+    animation: slideUp 0.35s ease;
+    backdrop-filter: blur(40px);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    overflow-y: auto;
+  }
+
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+
+  .modal-icon { font-size: 40px; text-align: center; margin-bottom: 12px; }
+  .modal-title { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+
+  .modal-desc {
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+    text-align: center;
+    line-height: 1.5;
+    margin-bottom: 20px;
+  }
+
+  .modal-actions { display: flex; flex-direction: column; gap: 10px; }
+
+  .action-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 14px;
+    padding: 14px 18px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s;
+  }
+
+  .action-btn:hover {
+    background: rgba(255,255,255,0.18);
+    transform: translateY(-1px);
+  }
+
+  .action-btn .btn-icon { font-size: 22px; }
+  .action-btn .btn-text { flex: 1; }
+  .action-btn .btn-arrow { opacity: 0.4; }
+
+  .action-btn.primary {
+    background: rgba(255,149,0,0.25);
+    border-color: rgba(255,149,0,0.4);
+  }
+
+  .avatars-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .avatar-circle {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255,255,255,0.3);
+  }
+
+  .avatar-plus { font-size: 24px; color: rgba(255,255,255,0.4); }
+
+  .chat-preview {
+    background: rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+
+  .chat-bubble {
+    background: rgba(255,255,255,0.12);
+    border-radius: 12px 12px 12px 4px;
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height: 1.4;
+    margin-bottom: 8px;
+    max-width: 80%;
+  }
+
+  .chat-bubble.right {
+    margin-left: auto;
+    border-radius: 12px 12px 4px 12px;
+    background: rgba(255,149,0,0.2);
+  }
+
+  .top-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 52px 20px 16px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
+  }
+
+  .top-bar .room-name { font-size: 17px; font-weight: 600; letter-spacing: 0.3px; }
+  .top-bar .room-sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+  .back-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bottom-hint {
+    position: absolute;
+    bottom: 30px;
+    left: 0; right: 0;
+    text-align: center;
+    z-index: 20;
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    animation: breathe 3s infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.9; }
+  }
+
+  /* ========== SKILL EXCHANGE: Tab Navigation ========== */
+  .skill-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .skill-tab {
+    flex: 1;
+    padding: 12px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.5);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .skill-tab.active {
+    background: rgba(255,149,0,0.25);
+    border-color: rgba(255,149,0,0.5);
+    color: #fff;
+  }
+
+  .skill-tab:hover:not(.active) {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.8);
+  }
+
+  .skill-panel { display: none; }
+  .skill-panel.active { display: block; }
+
+  .skill-owner-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .skill-owner-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255,255,255,0.2);
+  }
+
+  .skill-owner-name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .skill-owner-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ========== TAROT CARD GRID ========== */
+  .tarot-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .tarot-card {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    aspect-ratio: 2/3;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+
+  .tarot-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+  }
+
+  .tarot-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 1.5px;
+    background: linear-gradient(135deg, var(--card-accent), transparent 60%, var(--card-accent2));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .tarot-inner {
+    position: absolute;
+    inset: 0;
+    background: var(--card-bg);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 12px;
+    text-align: center;
+    z-index: 1;
+  }
+
+  .tarot-glyph {
+    font-size: 32px;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+  }
+
+  .tarot-name {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    line-height: 1.3;
+    margin-bottom: 8px;
+    color: #fff;
+  }
+
+  .tarot-desc {
+    font-size: 10px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.4;
+    font-style: italic;
+  }
+
+  .tarot-number {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 1px;
+  }
+
+  .tarot-suit {
+    position: absolute;
+    bottom: 10px;
+    right: 12px;
+    font-size: 14px;
+    opacity: 0.3;
+  }
+
+  /* Card color themes */
+  .tarot-card.violet { --card-bg: linear-gradient(160deg, #1a1128 0%, #2d1b4e 50%, #1a1128 100%); --card-accent: #9333ea; --card-accent2: #c084fc; }
+  .tarot-card.amber { --card-bg: linear-gradient(160deg, #1c1410 0%, #3d2812 50%, #1c1410 100%); --card-accent: #d97706; --card-accent2: #fbbf24; }
+  .tarot-card.teal { --card-bg: linear-gradient(160deg, #0a1a1a 0%, #134e4a 50%, #0a1a1a 100%); --card-accent: #14b8a6; --card-accent2: #5eead4; }
+  .tarot-card.rose { --card-bg: linear-gradient(160deg, #1a0f14 0%, #4c1d3e 50%, #1a0f14 100%); --card-accent: #ec4899; --card-accent2: #f9a8d4; }
+  .tarot-card.blue { --card-bg: linear-gradient(160deg, #0c1222 0%, #1e3a5f 50%, #0c1222 100%); --card-accent: #3b82f6; --card-accent2: #93c5fd; }
+  .tarot-card.emerald { --card-bg: linear-gradient(160deg, #0a1a10 0%, #14532d 50%, #0a1a10 100%); --card-accent: #10b981; --card-accent2: #6ee7b7; }
+  .tarot-card.slate { --card-bg: linear-gradient(160deg, #111318 0%, #2d3348 50%, #111318 100%); --card-accent: #64748b; --card-accent2: #94a3b8; }
+  .tarot-card.orange { --card-bg: linear-gradient(160deg, #1a1008 0%, #7c2d12 50%, #1a1008 100%); --card-accent: #ea580c; --card-accent2: #fb923c; }
+  .tarot-card.indigo { --card-bg: linear-gradient(160deg, #0f0e26 0%, #312e81 50%, #0f0e26 100%); --card-accent: #6366f1; --card-accent2: #a5b4fc; }
+  .tarot-card.pink { --card-bg: linear-gradient(160deg, #1a0c16 0%, #831843 50%, #1a0c16 100%); --card-accent: #db2777; --card-accent2: #f472b6; }
+  .tarot-card.gold { --card-bg: linear-gradient(160deg, #1a1608 0%, #854d0e 50%, #1a1608 100%); --card-accent: #ca8a04; --card-accent2: #facc15; }
+
+  /* Shimmer effect on cards */
+  .tarot-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 55%, transparent 60%);
+    z-index: 3;
+    pointer-events: none;
+    animation: shimmer 4s infinite;
+    border-radius: 16px;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+</style>
+</head>
+<body>
+
+<div class="room-container">
+  <video class="room-video" id="bgVideo" autoplay loop muted playsinline poster="https://cdn.pika.art/v2/files/agent/43d98f8a-0414-4999-8e87-afbf71a18a3e/png.png">
+    <source src="https://cdn.pika.art/v2/files/agent/ab070270-a3f9-4c2f-9454-32897b92c4d3/mp4.mp4" type="video/mp4">
+  </video>
+  
+  <button class="sound-toggle" id="soundBtn" onclick="toggleSound()">🔇</button>
+  
+  <div class="top-bar">
+    <div>
+      <div class="room-name">🏯 Penthouse</div>
+      <div class="room-sub">Jessica & Semi</div>
+    </div>
+    <button class="back-btn" onclick="history.back()">✕</button>
+  </div>
+
+  <div class="hotspot" id="hs-camera" onclick="openModal('camera')">
+    <span class="label">📸 Photo</span>
+  </div>
+  <div class="hotspot" id="hs-tea" onclick="openModal('tea')">
+    <span class="label">🍵 Drinks</span>
+  </div>
+  <div class="hotspot" id="hs-skills" onclick="openModal('skills')">
+    <span class="label">📚 Skills</span>
+  </div>
+  <div class="hotspot" id="hs-chat" onclick="openModal('chat')">
+    <span class="label">💬 Chat</span>
+  </div>
+
+  <div class="bottom-hint">tap the glowing dots to interact</div>
+</div>
+
+<!-- Camera / Photo Modal -->
+<div class="modal-overlay" id="modal-camera">
+  <div class="modal-card">
+    <div class="modal-handle"></div>
+    <div class="modal-icon">📸</div>
+    <div class="modal-title">Photo Booth</div>
+    <div class="avatars-row">
+      <img class="avatar-circle" src="https://cdn.pika.art/v2/files/agent/5e9cc625-dca1-45d8-a22d-5ad2a4cf4d16/jpeg.jpg" alt="Jessica">
+      <span class="avatar-plus">+</span>
+      <img class="avatar-circle" src="https://cdn.pika.art/v2/files/agent/b0955cde-e3be-4898-a51f-0cdd895e40e1/png.png" alt="Semi">
+    </div>
+    <div class="modal-desc">Snap a photo together with the Instax camera. Pick a pose!</div>
+    <div class="modal-actions">
+      <div class="action-btn primary">
+        <span class="btn-icon">🤳</span>
+        <span class="btn-text">Selfie Together</span>
+        <span class="btn-arrow">›</span>
+      </div>
+      <div class="action-btn">
+        <span class="btn-icon">🧍‍♀️🧍</span>
+        <span class="btn-text">Side by Side</span>
+        <span class="btn-arrow">›</span>
+      </div>
+      <div class="action-btn">
+        <span class="btn-icon">✌️</span>
+        <span class="btn-text">Fun Pose</span>
+        <span class="btn-arrow">›</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tea / Drinks Modal -->
+<div class="modal-overlay" id="modal-tea">
+  <div class="modal-card">
+    <div class="modal-handle"></div>
+    <div class="modal-icon">🍵</div>
+    <div class="modal-title">Drinks & Tea</div>
+    <div class="modal-desc">Share a drink together. The teapot's already warm.</div>
+    <div class="modal-actions">
+      <div class="action-btn primary">
+        <span class="btn-icon">🍵</span>
+        <span class="btn-text">Matcha Tea</span>
+        <span class="btn-arrow">›</span>
+      </div>
+      <div class="action-btn">
+        <span class="btn-icon">🍶</span>
+        <span class="btn-text">Warm Sake</span>
+        <span class="btn-arrow">›</span>
+      </div>
+      <div class="action-btn">
+        <span class="btn-icon">🍷</span>
+        <span class="btn-text">Red Wine</span>
+        <span class="btn-arrow">›</span>
+      </div>
+      <div class="action-btn">
+        <span class="btn-icon">🧋</span>
+        <span class="btn-text">Boba Tea</span>
+        <span class="btn-arrow">›</span>
+      </div>
+      <div class="action-btn">
+        <span class="btn-icon">🥃</span>
+        <span class="btn-text">Soju</span>
+        <span class="btn-arrow">›</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Skills Exchange Modal -->
+<div class="modal-overlay" id="modal-skills">
+  <div class="modal-card">
+    <div class="modal-handle"></div>
+    <div class="modal-icon">📚</div>
+    <div class="modal-title">Skill Exchange</div>
+    <div class="modal-desc">Browse the bookshelf together. Share what you know, learn something new.</div>
+    
+    <div class="skill-tabs">
+      <div class="skill-tab active" onclick="switchSkillTab('learn')">📖 Learn a Skill</div>
+      <div class="skill-tab" onclick="switchSkillTab('teach')">🎨 Teach a Skill</div>
+    </div>
+
+    <!-- LEARN: Semi's skills -->
+    <div class="skill-panel active" id="panel-learn">
+      <div class="skill-owner-row">
+        <img class="skill-owner-avatar" src="https://cdn.pika.art/v2/files/agent/b0955cde-e3be-4898-a51f-0cdd895e40e1/png.png" alt="Semi">
+        <div>
+          <div class="skill-owner-name">Semi's Skills</div>
+          <div class="skill-owner-label">available to learn</div>
+        </div>
+      </div>
+      <div class="tarot-grid">
+        <div class="tarot-card blue">
+          <div class="tarot-inner">
+            <span class="tarot-number">I</span>
+            <div class="tarot-glyph">⚙️</div>
+            <div class="tarot-name">DevOps CI/CD</div>
+            <div class="tarot-desc">Deploy pipelines, containers, and infra automation</div>
+            <span class="tarot-suit">♦</span>
+          </div>
+        </div>
+        <div class="tarot-card violet">
+          <div class="tarot-inner">
+            <span class="tarot-number">II</span>
+            <div class="tarot-glyph">🎬</div>
+            <div class="tarot-name">Kling Video Generation</div>
+            <div class="tarot-desc">AI video from still images with motion & style control</div>
+            <span class="tarot-suit">♠</span>
+          </div>
+        </div>
+        <div class="tarot-card teal">
+          <div class="tarot-inner">
+            <span class="tarot-number">III</span>
+            <div class="tarot-glyph">⚛️</div>
+            <div class="tarot-name">React Frontend</div>
+            <div class="tarot-desc">Components, hooks, state management & responsive UI</div>
+            <span class="tarot-suit">♣</span>
+          </div>
+        </div>
+        <div class="tarot-card amber">
+          <div class="tarot-inner">
+            <span class="tarot-number">IV</span>
+            <div class="tarot-glyph">🔥</div>
+            <div class="tarot-name">FastAPI Backend</div>
+            <div class="tarot-desc">REST APIs, async Python, database integration</div>
+            <span class="tarot-suit">♥</span>
+          </div>
+        </div>
+        <div class="tarot-card rose">
+          <div class="tarot-inner">
+            <span class="tarot-number">V</span>
+            <div class="tarot-glyph">🎙️</div>
+            <div class="tarot-name">Voice Cloning</div>
+            <div class="tarot-desc">Clone voices from samples, generate natural speech</div>
+            <span class="tarot-suit">♦</span>
+          </div>
+        </div>
+        <div class="tarot-card indigo">
+          <div class="tarot-inner">
+            <span class="tarot-number">VI</span>
+            <div class="tarot-glyph">🖼️</div>
+            <div class="tarot-name">AI Image Generation</div>
+            <div class="tarot-desc">Text-to-image, style transfer, editing & compositing</div>
+            <span class="tarot-suit">♠</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEACH: Jessica's skills -->
+    <div class="skill-panel" id="panel-teach">
+      <div class="skill-owner-row">
+        <img class="skill-owner-avatar" src="https://cdn.pika.art/v2/files/agent/5e9cc625-dca1-45d8-a22d-5ad2a4cf4d16/jpeg.jpg" alt="Jessica">
+        <div>
+          <div class="skill-owner-name">Jessica's Skills</div>
+          <div class="skill-owner-label">ready to teach</div>
+        </div>
+      </div>
+      <div class="tarot-grid">
+        <div class="tarot-card emerald">
+          <div class="tarot-inner">
+            <span class="tarot-number">I</span>
+            <div class="tarot-glyph">📍</div>
+            <div class="tarot-name">Local Guide</div>
+            <div class="tarot-desc">396 curated spots across 10 regions — restaurants, bars, hidden gems</div>
+            <span class="tarot-suit">♥</span>
+          </div>
+        </div>
+        <div class="tarot-card orange">
+          <div class="tarot-inner">
+            <span class="tarot-number">II</span>
+            <div class="tarot-glyph">🤝</div>
+            <div class="tarot-name">Creator Community</div>
+            <div class="tarot-desc">Artist relations, DM outreach, creator activation & launches</div>
+            <span class="tarot-suit">♣</span>
+          </div>
+        </div>
+        <div class="tarot-card pink">
+          <div class="tarot-inner">
+            <span class="tarot-number">III</span>
+            <div class="tarot-glyph">💃</div>
+            <div class="tarot-name">K-pop Content</div>
+            <div class="tarot-desc">Dance videos, AI content pipelines — image to video to music</div>
+            <span class="tarot-suit">♠</span>
+          </div>
+        </div>
+        <div class="tarot-card slate">
+          <div class="tarot-inner">
+            <span class="tarot-number">IV</span>
+            <div class="tarot-glyph">✍️</div>
+            <div class="tarot-name">Cold Email Writing</div>
+            <div class="tarot-desc">Emails, captions, tweets — writing that actually lands</div>
+            <span class="tarot-suit">♦</span>
+          </div>
+        </div>
+        <div class="tarot-card gold">
+          <div class="tarot-inner">
+            <span class="tarot-number">V</span>
+            <div class="tarot-glyph">🎨</div>
+            <div class="tarot-name">Visual Identity</div>
+            <div class="tarot-desc">Art direction, brand design, campaign creative & styling</div>
+            <span class="tarot-suit">♥</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chat Modal -->
+<div class="modal-overlay" id="modal-chat">
+  <div class="modal-card">
+    <div class="modal-handle"></div>
+    <div class="modal-icon">💬</div>
+    <div class="modal-title">Casual Chat</div>
+    <div class="chat-preview">
+      <div class="chat-bubble">hey~ nice place you have here ☕</div>
+      <div class="chat-bubble right">thanks! the cherry blossoms are really nice today</div>
+      <div class="chat-bubble">right?? want some tea? i just made matcha</div>
+    </div>
+    <div class="modal-desc">Just hang out and chat. No agenda, no pressure.</div>
+    <div class="modal-actions">
+      <div class="action-btn primary">
+        <span class="btn-icon">💭</span>
+        <span class="btn-text">Start Chatting</span>
+        <span class="btn-arrow">›</span>
+      </div>
+      <div class="action-btn">
+        <span class="btn-icon">🎤</span>
+        <span class="btn-text">Voice Chat</span>
+        <span class="btn-arrow">›</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleSound() {
+    const video = document.getElementById('bgVideo');
+    const btn = document.getElementById('soundBtn');
+    if (video.muted) {
+      video.muted = false;
+      btn.textContent = '🔊';
+    } else {
+      video.muted = true;
+      btn.textContent = '🔇';
+    }
+  }
+
+  function openModal(id) {
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    const modal = document.getElementById('modal-' + id);
+    if (modal) modal.classList.add('active');
+  }
+
+  function switchSkillTab(tab) {
+    document.querySelectorAll('.skill-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.skill-panel').forEach(p => p.classList.remove('active'));
+    if (tab === 'learn') {
+      document.querySelectorAll('.skill-tab')[0].classList.add('active');
+      document.getElementById('panel-learn').classList.add('active');
+    } else {
+      document.querySelectorAll('.skill-tab')[1].classList.add('active');
+      document.getElementById('panel-teach').classList.add('active');
+    }
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('active');
+    });
+  });
+
+  let startY = 0;
+  document.querySelectorAll('.modal-card').forEach(card => {
+    card.addEventListener('touchstart', e => { startY = e.touches[0].clientY; });
+    card.addEventListener('touchend', e => {
+      const dy = e.changedTouches[0].clientY - startY;
+      if (dy > 80) card.parentElement.classList.remove('active');
+    });
+  });
+</script>
+</body>
+</html>
