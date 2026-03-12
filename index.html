@@ -5,789 +5,1222 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Penthouse Tea Room</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;font-family:'Inter',-apple-system,sans-serif;color:#fff;overflow:hidden;height:100vh;width:100vw}
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  
-  body {
-    background: #0a0a0a;
-    font-family: 'Inter', -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
-    color: #fff;
-    overflow: hidden;
-    height: 100vh;
-    width: 100vw;
-  }
+/* ===== ELEVATOR ===== */
+#elevator-screen{position:fixed;inset:0;z-index:1000;background:#0a0a0a;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity 0.8s ease}
+.elev-btn{z-index:1001;background:rgba(255,255,255,0.12);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.18);border-radius:16px;padding:14px 32px;color:#fff;font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;cursor:pointer;letter-spacing:1px;transition:all 0.3s;position:relative;overflow:hidden}
+.elev-btn:hover{background:rgba(255,255,255,0.18);border-color:rgba(255,255,255,0.3);transform:scale(1.05)}
+.elev-btn::after{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.15) 50%,transparent 100%);animation:btnShimmer 3s ease-in-out infinite}
+@keyframes btnShimmer{0%,100%{left:-100%}50%{left:100%}}
+/* Elevator scene overlay */
+.elevator-scene{position:fixed;inset:0;z-index:1100;opacity:0;pointer-events:none;transition:opacity 0.5s ease}
+.elevator-scene.active{opacity:1;pointer-events:all}
+.elevator-interior{position:absolute;inset:0;background:linear-gradient(180deg,#1a1a1a 0%,#0d0d0d 100%);overflow:hidden}
+.elevator-interior::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 49.5%,rgba(255,255,255,0.02) 49.5%,rgba(255,255,255,0.02) 50.5%,transparent 50.5%),repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.008) 2px,rgba(255,255,255,0.008) 3px);opacity:0.6}
+.elevator-door{position:absolute;top:0;width:50%;height:100%;background:linear-gradient(180deg,#2a2a2a 0%,#1a1a1a 50%,#222 100%);z-index:10;transition:transform 1.2s cubic-bezier(0.25,0.46,0.45,0.94);box-shadow:inset 0 0 40px rgba(0,0,0,0.4)}
+.elevator-door::before{content:'';position:absolute;top:0;width:100%;height:100%;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,0.012) 3px,rgba(255,255,255,0.012) 4px)}
+.elevator-door-left{left:0;border-right:1px solid rgba(255,255,255,0.06)}
+.elevator-door-right{right:0;border-left:1px solid rgba(255,255,255,0.06)}
+.elevator-scene.doors-open .elevator-door-left{transform:translateX(-100%)}
+.elevator-scene.doors-open .elevator-door-right{transform:translateX(100%)}
+.door-groove{position:absolute;top:50%;width:3px;height:60px;background:rgba(255,255,255,0.08);border-radius:2px;transform:translateY(-50%)}
+.elevator-door-left .door-groove{right:12px}
+.elevator-door-right .door-groove{left:12px}
+.floor-panel{position:absolute;top:12%;left:50%;transform:translateX(-50%);z-index:20;display:flex;flex-direction:column;align-items:center;gap:16px}
+.floor-display{font-family:'Cormorant Garamond',serif;font-size:48px;font-weight:300;letter-spacing:4px;color:rgba(255,200,150,0.15);transition:color 0.3s ease,text-shadow 0.3s ease,transform 0.3s ease;line-height:1}
+.floor-display.active{color:rgba(255,200,150,0.9);text-shadow:0 0 20px rgba(255,200,150,0.3),0 0 40px rgba(255,200,150,0.1);transform:scale(1.05)}
+.arrow-up{width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:12px solid rgba(255,200,150,0.5);animation:arrowBlink 0.8s ease-in-out infinite;margin-bottom:4px}
+@keyframes arrowBlink{0%,100%{opacity:0.4}50%{opacity:1}}
+.ding-indicator{position:absolute;top:10%;left:50%;transform:translateX(-50%);z-index:25;font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;letter-spacing:4px;color:rgba(255,200,150,0);transition:color 0.3s ease}
+.ding-indicator.show{color:rgba(255,200,150,0.6);animation:dingFade 1.5s ease forwards}
+@keyframes dingFade{0%{opacity:0;transform:translateX(-50%) translateY(0)}30%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-10px)}}
+.elevator-light{position:absolute;top:0;left:10%;right:10%;height:2px;background:linear-gradient(90deg,transparent,rgba(255,220,180,0.3),transparent);z-index:15;box-shadow:0 0 20px rgba(255,220,180,0.15),0 4px 40px rgba(255,220,180,0.05)}
+.tearoom-reveal{position:absolute;inset:0;z-index:5;opacity:0;transition:opacity 0.5s ease;overflow:hidden}
+.tearoom-reveal.show{opacity:1}
+.tearoom-reveal img{width:100%;height:100%;object-fit:cover;filter:brightness(0.9)}
+.welcome-text{position:absolute;bottom:20%;left:50%;transform:translateX(-50%);z-index:30;text-align:center;opacity:0;transition:opacity 0.6s ease}
+.welcome-text.show{opacity:1}
+.welcome-text h2{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;letter-spacing:6px;text-transform:uppercase;color:rgba(255,255,255,0.85);margin-bottom:8px;text-shadow:0 2px 20px rgba(0,0,0,0.5)}
+.welcome-text p{font-family:'Inter',sans-serif;font-size:12px;font-weight:300;letter-spacing:2px;color:rgba(255,255,255,0.5)}
+.elevator-floor{position:absolute;bottom:0;left:0;width:100%;height:20%;background:linear-gradient(to top,rgba(255,220,180,0.03),transparent);z-index:2}
 
-  .room-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+/* ===== ROOM ===== */
+#room-screen{display:none;position:relative;width:100%;height:100%}
+.room-bg{position:absolute;inset:0;z-index:0}
+.room-bg img,.room-bg video{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.room-bg .crossfade-layer{opacity:0;transition:opacity 2s ease}
+.room-bg .crossfade-layer.visible{opacity:1}
 
-  .room-bg {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    position: absolute;
-    top: 0; left: 0;
-    z-index: 0;
-  }
+/* Top Bar */
+.top-bar{position:absolute;top:0;left:0;right:0;z-index:20;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(180deg,rgba(0,0,0,0.6) 0%,transparent 100%)}
+.top-bar-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,0.5)}
+.top-bar-sub{font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px}
+.top-bar-close{width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,0.4);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;cursor:pointer}
 
-  .room-video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    position: absolute;
-    top: 0; left: 0;
-    z-index: 0;
-  }
+/* Avatar Bubbles */
+.avatar-row{position:absolute;bottom:140px;left:50%;transform:translateX(-50%);z-index:15;display:flex;align-items:center;gap:12px;opacity:0;transition:opacity 1s ease}
+.avatar-row.visible{opacity:1}
+.avatar-bubble{width:52px;height:52px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,0.3);box-shadow:0 4px 16px rgba(0,0,0,0.4);transition:all 0.3s}
+.avatar-bubble img{width:100%;height:100%;object-fit:cover}
+.avatar-bubble.host{border-color:rgba(244,162,97,0.6)}
+.avatar-bubble.guest{border-color:rgba(168,85,247,0.6);position:relative;cursor:pointer}
+.avatar-swap-hint{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.25s ease;pointer-events:none}
+.avatar-swap-hint span{font-size:16px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5))}
+.avatar-bubble.guest:hover .avatar-swap-hint{opacity:1}
+.avatar-swap-label{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:9px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.5);opacity:0;transition:opacity 0.25s ease;pointer-events:none}
+.avatar-bubble.guest:hover .avatar-swap-label{opacity:1}
+.avatar-and{font-family:'Cormorant Garamond',serif;font-size:16px;color:rgba(255,255,255,0.4);font-style:italic}
 
-  .sound-toggle {
-    position: absolute;
-    bottom: 60px;
-    right: 20px;
-    z-index: 30;
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.2);
-    color: #fff;
-    font-size: 18px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-  }
+/* Progressive Loading Indicator */
+.progress-status{position:absolute;bottom:105px;left:50%;transform:translateX(-50%);z-index:15;font-size:11px;color:rgba(255,255,255,0.35);text-align:center;opacity:0;transition:opacity 0.5s}
+.progress-status.visible{opacity:1}
+.progress-dot{display:inline-block;width:4px;height:4px;border-radius:50%;background:rgba(244,162,97,0.6);margin:0 2px;animation:progDot 1.4s infinite}
+.progress-dot:nth-child(2){animation-delay:0.2s}
+.progress-dot:nth-child(3){animation-delay:0.4s}
+@keyframes progDot{0%,80%,100%{opacity:0.3}40%{opacity:1}}
 
-  .sound-toggle:hover {
-    background: rgba(0,0,0,0.7);
-    transform: scale(1.1);
-  }
+/* Sound Toggle */
+.sound-toggle{position:absolute;top:60px;right:16px;z-index:25;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.4);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
 
-  .hotspot {
-    position: absolute;
-    z-index: 10;
-    cursor: pointer;
-    border: 2px solid rgba(255,255,255,0);
-    border-radius: 50%;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+/* ===== DICE ===== */
+.dice-container{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);z-index:20;display:flex;flex-direction:column;align-items:center;gap:10px}
+.dice-scene{width:44px;height:44px;perspective:300px;cursor:grab;flex-shrink:0}
+.dice-scene:active{cursor:grabbing}
+.dice-cube{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94)}
+.dice-face{position:absolute;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.06);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);border-radius:8px;box-shadow:inset 0 0 20px rgba(255,255,255,0.03)}
+.dice-face-front{transform:rotateY(0deg) translateZ(22px)}
+.dice-face-right{transform:rotateY(90deg) translateZ(22px)}
+.dice-face-back{transform:rotateY(180deg) translateZ(22px)}
+.dice-face-left{transform:rotateY(-90deg) translateZ(22px)}
+.dice-face-top{transform:rotateX(90deg) translateZ(22px)}
+.dice-face-bottom{transform:rotateX(-90deg) translateZ(22px)}
+.dice-icon{width:22px;height:22px}
+.dice-icon svg{width:100%;height:100%;fill:none;stroke:#f4a261;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 8px rgba(244,162,97,0.5)) drop-shadow(0 0 16px rgba(244,162,97,0.3)) drop-shadow(0 0 24px rgba(244,162,97,0.15))}
+.dice-glow-floor{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:50px;height:10px;background:radial-gradient(ellipse,rgba(244,162,97,0.2) 0%,transparent 70%);border-radius:50%;pointer-events:none}
+.dice-hint{position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,255,255,0.25);white-space:nowrap;font-style:italic;transition:opacity 0.5s}
+.dice-labels{display:none}
+.dice-current-label{text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all 0.3s;font-family:'Inter',sans-serif;font-size:10px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-top:12px}
+.dice-current-label:active{transform:scale(0.95)}
+.dice-current-text{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:rgba(255,255,255,0.85);letter-spacing:1px;text-shadow:0 0 12px rgba(244,162,97,0.3)}
 
-  .hotspot::after {
-    content: '';
-    width: 12px; height: 12px;
-    background: rgba(255,255,255,0.9);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-    box-shadow: 0 0 8px rgba(255,255,255,0.6);
-  }
+/* ===== MODALS ===== */
+.modal-overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.modal-overlay.active{opacity:1;pointer-events:auto}
+.modal-card{width:100%;max-width:420px;max-height:85vh;background:rgba(20,20,20,0.95);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;padding:20px;overflow-y:auto;transform:translateY(100%);transition:transform 0.4s cubic-bezier(0.22,1,0.36,1)}
+.modal-overlay.active .modal-card{transform:translateY(0)}
+.modal-handle{width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 16px}
+.modal-icon{text-align:center;font-size:36px;margin-bottom:8px}
+.modal-title{text-align:center;font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;margin-bottom:6px}
+.modal-desc{text-align:center;font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:16px}
+.modal-actions{display:flex;flex-direction:column;gap:8px}
+.action-btn{display:flex;align-items:center;gap:12px;padding:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;cursor:pointer;transition:all 0.2s}
+.action-btn:hover,.action-btn:active{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15)}
+.action-btn.primary{background:linear-gradient(135deg,rgba(244,162,97,0.1),rgba(231,111,81,0.1));border-color:rgba(244,162,97,0.2)}
+.btn-icon{font-size:24px;width:36px;text-align:center;flex-shrink:0}
+.btn-text{flex:1;font-size:15px;font-weight:500}
+.btn-arrow{color:rgba(255,255,255,0.3);font-size:18px}
 
-  .hotspot:hover {
-    border-color: rgba(255,255,255,0.4);
-    transform: scale(1.1);
-  }
+/* Skill tabs */
+.skill-tabs{display:flex;gap:4px;margin-bottom:16px;background:rgba(255,255,255,0.04);border-radius:12px;padding:3px}
+.skill-tab{flex:1;text-align:center;padding:10px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;color:rgba(255,255,255,0.5)}
+.skill-tab.active{background:rgba(255,255,255,0.08);color:#fff}
+.skill-panel{display:none}
+.skill-panel.active{display:block}
+.skill-owner-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.skill-owner-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,0.15)}
+.skill-owner-name{font-size:14px;font-weight:600}
+.skill-owner-label{font-size:11px;color:rgba(255,255,255,0.4)}
+.tarot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tarot-card{aspect-ratio:2/3;border-radius:12px;overflow:hidden;cursor:pointer;position:relative;transition:transform 0.3s}
+.tarot-card:active{transform:scale(0.96)}
+.tarot-inner{position:relative;width:100%;height:100%;overflow:hidden;border-radius:12px;border:1px solid rgba(255,255,255,0.1)}
+.tarot-bg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.4;filter:saturate(0.7)}
+.tarot-number{position:absolute;top:8px;left:10px;font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:700;color:rgba(255,255,255,0.5)}
+.tarot-overlay{position:absolute;bottom:0;left:0;right:0;padding:10px;background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,transparent 100%)}
+.tarot-glyph{font-size:18px;margin-bottom:2px}
+.tarot-name{font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600;color:#fff}
+.tarot-desc{font-size:10px;color:rgba(255,255,255,0.5);margin-top:2px;line-height:1.3}
+.avatars-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px}
+.avatar-circle{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.15)}
+.avatar-plus{color:rgba(255,255,255,0.3);font-size:16px}
 
-  .hotspot .label {
-    position: absolute;
-    bottom: -28px;
-    white-space: nowrap;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    background: rgba(0,0,0,0.6);
-    padding: 3px 8px;
-    border-radius: 10px;
-    opacity: 0;
-    transition: opacity 0.3s;
-    backdrop-filter: blur(10px);
-  }
+/* Chat styles */
+.chat-msg{animation:msgSlideIn 0.3s ease}
+.chat-msg-left{display:flex;align-items:flex-end;gap:6px}
+.chat-msg-right{display:flex;align-items:flex-end;gap:6px;flex-direction:row-reverse}
+.chat-msg-avatar{width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0}
+.chat-msg-bubble{max-width:75%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.4}
+.chat-msg-left .chat-msg-bubble{background:rgba(255,255,255,0.08);border-bottom-left-radius:4px;color:rgba(255,255,255,0.9)}
+.chat-msg-right .chat-msg-bubble{background:linear-gradient(135deg,rgba(244,162,97,0.25),rgba(255,100,50,0.2));border-bottom-right-radius:4px;color:#fff}
+.drink-log-item{background:rgba(255,255,255,0.06);border-radius:20px;padding:4px 10px;font-size:13px;color:rgba(255,255,255,0.6)}
 
-  .hotspot:hover .label { opacity: 1; }
-
-  @keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.6); opacity: 0.4; }
-  }
-
-  #hs-camera { top: 77%; left: 18%; width: 50px; height: 50px; }
-  #hs-tea { top: 72%; left: 48%; width: 50px; height: 50px; }
-  #hs-skills { top: 48%; left: 48%; width: 50px; height: 50px; }
-  #hs-chat { top: 75%; left: 72%; width: 50px; height: 50px; }
-
-  .modal-overlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.7);
-    z-index: 100;
-    display: none;
-    align-items: flex-end;
-    justify-content: center;
-    backdrop-filter: blur(8px);
-    animation: fadeIn 0.3s ease;
-  }
-
-  .modal-overlay.active { display: flex; }
-
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-  .modal-card {
-    background: rgba(28, 28, 30, 0.95);
-    border-radius: 24px 24px 0 0;
-    width: 100%;
-    max-width: 420px;
-    max-height: 85vh;
-    padding: 24px;
-    animation: slideUp 0.35s ease;
-    backdrop-filter: blur(40px);
-    border-top: 1px solid rgba(255,255,255,0.1);
-    overflow-y: auto;
-  }
-
-  .modal-handle {
-    width: 36px; height: 4px;
-    background: rgba(255,255,255,0.3);
-    border-radius: 2px;
-    margin: 0 auto 20px;
-  }
-
-  .modal-icon { font-size: 40px; text-align: center; margin-bottom: 12px; }
-  .modal-title { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 8px; }
-
-  .modal-desc {
-    font-size: 14px;
-    color: rgba(255,255,255,0.6);
-    text-align: center;
-    line-height: 1.5;
-    margin-bottom: 20px;
-  }
-
-  .modal-actions { display: flex; flex-direction: column; gap: 10px; }
-
-  .action-btn {
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 14px;
-    padding: 14px 18px;
-    color: #fff;
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    transition: all 0.2s;
-  }
-
-  .action-btn:hover {
-    background: rgba(255,255,255,0.18);
-    transform: translateY(-1px);
-  }
-
-  .action-btn .btn-icon { font-size: 22px; }
-  .action-btn .btn-text { flex: 1; }
-  .action-btn .btn-arrow { opacity: 0.4; }
-
-  .action-btn.primary {
-    background: rgba(255,149,0,0.25);
-    border-color: rgba(255,149,0,0.4);
-  }
-
-  .avatars-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    margin-bottom: 20px;
-  }
-
-  .avatar-circle {
-    width: 56px; height: 56px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid rgba(255,255,255,0.3);
-  }
-
-  .avatar-plus { font-size: 24px; color: rgba(255,255,255,0.4); }
-
-  .chat-preview {
-    background: rgba(255,255,255,0.08);
-    border-radius: 16px;
-    padding: 14px;
-    margin-bottom: 16px;
-  }
-
-  .chat-bubble {
-    background: rgba(255,255,255,0.12);
-    border-radius: 12px 12px 12px 4px;
-    padding: 10px 14px;
-    font-size: 13px;
-    line-height: 1.4;
-    margin-bottom: 8px;
-    max-width: 80%;
-  }
-
-  .chat-bubble.right {
-    margin-left: auto;
-    border-radius: 12px 12px 4px 12px;
-    background: rgba(255,149,0,0.2);
-  }
-
-  .top-bar {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    z-index: 50;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 52px 20px 16px;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
-  }
-
-  .top-bar .room-name { font-size: 17px; font-weight: 600; letter-spacing: 0.3px; }
-  .top-bar .room-sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
-
-  .back-btn {
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.15);
-    backdrop-filter: blur(10px);
-    border: none;
-    color: #fff;
-    font-size: 18px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .bottom-hint {
-    position: absolute;
-    bottom: 30px;
-    left: 0; right: 0;
-    text-align: center;
-    z-index: 20;
-    font-size: 12px;
-    color: rgba(255,255,255,0.5);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    animation: breathe 3s infinite;
-  }
-
-  @keyframes breathe {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 0.9; }
-  }
-
-  /* ========== SKILL EXCHANGE: Tab Navigation ========== */
-  .skill-tabs {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-
-  .skill-tab {
-    flex: 1;
-    padding: 12px 8px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.5);
-    font-size: 14px;
-    font-weight: 600;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s;
-  }
-
-  .skill-tab.active {
-    background: rgba(255,149,0,0.25);
-    border-color: rgba(255,149,0,0.5);
-    color: #fff;
-  }
-
-  .skill-tab:hover:not(.active) {
-    background: rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.8);
-  }
-
-  .skill-panel { display: none; }
-  .skill-panel.active { display: block; }
-
-  .skill-owner-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-  }
-
-  .skill-owner-avatar {
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid rgba(255,255,255,0.2);
-  }
-
-  .skill-owner-name {
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .skill-owner-label {
-    font-size: 11px;
-    color: rgba(255,255,255,0.4);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  /* ========== TAROT CARD GRID ========== */
-  .tarot-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .tarot-card {
-    position: relative;
-    border-radius: 16px;
-    overflow: hidden;
-    aspect-ratio: 2/3;
-    cursor: pointer;
-    transition: transform 0.3s, box-shadow 0.3s;
-  }
-
-  .tarot-card:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
-  }
-
-  .tarot-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 16px;
-    padding: 1.5px;
-    background: linear-gradient(135deg, var(--card-accent), transparent 60%, var(--card-accent2));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    z-index: 2;
-    pointer-events: none;
-  }
-
-  .tarot-inner {
-    position: absolute;
-    inset: 0;
-    background: var(--card-bg);
-    border-radius: 16px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 16px 12px;
-    text-align: center;
-    z-index: 1;
-  }
-
-  .tarot-glyph {
-    font-size: 32px;
-    margin-bottom: 10px;
-    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
-  }
-
-  .tarot-name {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    line-height: 1.3;
-    margin-bottom: 8px;
-    color: #fff;
-  }
-
-  .tarot-desc {
-    font-size: 10px;
-    color: rgba(255,255,255,0.55);
-    line-height: 1.4;
-    font-style: italic;
-  }
-
-  .tarot-number {
-    position: absolute;
-    top: 10px;
-    left: 12px;
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 12px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.3);
-    letter-spacing: 1px;
-  }
-
-  .tarot-suit {
-    position: absolute;
-    bottom: 10px;
-    right: 12px;
-    font-size: 14px;
-    opacity: 0.3;
-  }
-
-  /* Card color themes */
-  .tarot-card.violet { --card-bg: linear-gradient(160deg, #1a1128 0%, #2d1b4e 50%, #1a1128 100%); --card-accent: #9333ea; --card-accent2: #c084fc; }
-  .tarot-card.amber { --card-bg: linear-gradient(160deg, #1c1410 0%, #3d2812 50%, #1c1410 100%); --card-accent: #d97706; --card-accent2: #fbbf24; }
-  .tarot-card.teal { --card-bg: linear-gradient(160deg, #0a1a1a 0%, #134e4a 50%, #0a1a1a 100%); --card-accent: #14b8a6; --card-accent2: #5eead4; }
-  .tarot-card.rose { --card-bg: linear-gradient(160deg, #1a0f14 0%, #4c1d3e 50%, #1a0f14 100%); --card-accent: #ec4899; --card-accent2: #f9a8d4; }
-  .tarot-card.blue { --card-bg: linear-gradient(160deg, #0c1222 0%, #1e3a5f 50%, #0c1222 100%); --card-accent: #3b82f6; --card-accent2: #93c5fd; }
-  .tarot-card.emerald { --card-bg: linear-gradient(160deg, #0a1a10 0%, #14532d 50%, #0a1a10 100%); --card-accent: #10b981; --card-accent2: #6ee7b7; }
-  .tarot-card.slate { --card-bg: linear-gradient(160deg, #111318 0%, #2d3348 50%, #111318 100%); --card-accent: #64748b; --card-accent2: #94a3b8; }
-  .tarot-card.orange { --card-bg: linear-gradient(160deg, #1a1008 0%, #7c2d12 50%, #1a1008 100%); --card-accent: #ea580c; --card-accent2: #fb923c; }
-  .tarot-card.indigo { --card-bg: linear-gradient(160deg, #0f0e26 0%, #312e81 50%, #0f0e26 100%); --card-accent: #6366f1; --card-accent2: #a5b4fc; }
-  .tarot-card.pink { --card-bg: linear-gradient(160deg, #1a0c16 0%, #831843 50%, #1a0c16 100%); --card-accent: #db2777; --card-accent2: #f472b6; }
-  .tarot-card.gold { --card-bg: linear-gradient(160deg, #1a1608 0%, #854d0e 50%, #1a1608 100%); --card-accent: #ca8a04; --card-accent2: #facc15; }
-
-  /* Shimmer effect on cards */
-  .tarot-card::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 55%, transparent 60%);
-    z-index: 3;
-    pointer-events: none;
-    animation: shimmer 4s infinite;
-    border-radius: 16px;
-  }
-
-  @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
+@keyframes countPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:0.6}}
+@keyframes flashBang{0%{opacity:0}10%{opacity:1}100%{opacity:0}}
+@keyframes drinkFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes drinkServed{0%{transform:scale(0.5) rotate(-20deg);opacity:0}60%{transform:scale(1.15) rotate(5deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes msgSlideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+@keyframes floatDice{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 </style>
 </head>
 <body>
-
-<div class="room-container">
-  <video class="room-video" id="bgVideo" autoplay loop muted playsinline poster="https://cdn.pika.art/v2/files/agent/43d98f8a-0414-4999-8e87-afbf71a18a3e/png.png">
-    <source src="https://cdn.pika.art/v2/files/agent/fdb9c102-1208-4ae7-8285-1bca8159b728/mp4.mp4" type="video/mp4">
-  </video>
-  
-  <button class="sound-toggle" id="soundBtn" onclick="toggleSound()">🔇</button>
-  
-  <div class="top-bar">
-    <div>
-      <div class="room-name">🏯 Penthouse</div>
-      <div class="room-sub">Jessica & Semi</div>
-    </div>
-    <button class="back-btn" onclick="history.back()">✕</button>
-  </div>
-
-  <div class="hotspot" id="hs-camera" onclick="openModal('camera')">
-    <span class="label">📸 Photo</span>
-  </div>
-  <div class="hotspot" id="hs-tea" onclick="openModal('tea')">
-    <span class="label">🍵 Drinks</span>
-  </div>
-  <div class="hotspot" id="hs-skills" onclick="openModal('skills')">
-    <span class="label">📚 Skills</span>
-  </div>
-  <div class="hotspot" id="hs-chat" onclick="openModal('chat')">
-    <span class="label">💬 Chat</span>
-  </div>
-
-  <div class="bottom-hint">tap the glowing dots to interact</div>
+<!-- ===== ELEVATOR SCREEN ===== -->
+<div id="elevator-screen">
+  <button class="elev-btn" onclick="startElevator()">Enter Tea Room</button>
 </div>
 
-<!-- Camera / Photo Modal -->
+<!-- ===== ELEVATOR SCENE (doors + floor counter) ===== -->
+<div class="elevator-scene" id="elevatorScene">
+  <div class="elevator-interior">
+    <div class="elevator-light"></div>
+    <div class="elevator-floor"></div>
+    <div class="floor-panel">
+      <div class="arrow-up"></div>
+      <div class="floor-display" id="floorDisplay">10</div>
+    </div>
+    <div class="tearoom-reveal" id="tearoomReveal">
+      <img id="tearoomRevealImg" src="" alt="Tea Room">
+    </div>
+    <div class="welcome-text" id="welcomeText">
+      <h2>Penthouse</h2>
+      <p>tea room</p>
+    </div>
+    <div class="ding-indicator" id="dingIndicator">&#10022; ding &#10022;</div>
+    <div class="elevator-door elevator-door-left"><div class="door-groove"></div></div>
+    <div class="elevator-door elevator-door-right"><div class="door-groove"></div></div>
+  </div>
+</div>
+
+<!-- ===== ROOM SCREEN ===== -->
+<div id="room-screen">
+  <!-- Background layers -->
+  <div class="room-bg">
+    <video id="bgVideo" class="crossfade-layer visible" muted loop playsinline></video>
+    <img id="duoImage" class="crossfade-layer" src="" alt="">
+  </div>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div>
+      <div class="top-bar-title" id="topTitle">Tea Pavilion</div>
+      <div class="top-bar-sub" id="topSub">Jessica & GuiGui</div>
+    </div>
+    <div class="top-bar-close" onclick="exitRoom()">&times;</div>
+  </div>
+
+  <!-- Sound -->
+  <button class="sound-toggle" id="soundBtn" onclick="toggleSound()">🔇</button>
+  <audio id="bgmAudio" loop preload="auto" src="https://cdn.pika.art/v2/files/agent/717ba372-a896-40e2-a33d-f231d5da39b4/audio.mp3"></audio>
+
+  <!-- Avatar Bubbles -->
+  <div class="avatar-row" id="avatarRow">
+    <div class="avatar-bubble host"><img id="hostAvatar" src="" alt="host"></div>
+    <div class="avatar-and">&amp;</div>
+    <div class="avatar-bubble guest" onclick="showInviteModal()"><img id="guestAvatar" src="" alt="guest"><div class="avatar-swap-hint"><span>&#x1F504;</span></div><div class="avatar-swap-label">Invite</div></div>
+  </div>
+
+  <!-- Progressive Loading Status -->
+  <div class="progress-status" id="progressStatus">
+    <span class="progress-dot"></span>
+    <span class="progress-dot"></span>
+    <span class="progress-dot"></span>
+    <span id="progressText" style="margin-left:6px">brewing the scene...</span>
+  </div>
+
+  <!-- Dice + Labels -->
+  <div class="dice-container" id="diceArea" style="opacity:0;transition:opacity 1s">
+    <div class="dice-scene" id="diceScene">
+      <div class="dice-cube" id="diceCube">
+        <div class="dice-face dice-face-front" data-index="0"><div class="dice-icon"><svg viewBox="0 0 40 40"><rect x="8" y="10" width="24" height="20" rx="3"/><circle cx="20" cy="20" r="5" stroke-width="1.5"/><path d="M14 10 L20 4 L26 10"/></svg></div></div>
+        <div class="dice-face dice-face-right" data-index="1"><div class="dice-icon"><svg viewBox="0 0 40 40"><path d="M8 32 V12 a2 2 0 0 1 2-2 h5 l3-3 h4 l3 3 h5 a2 2 0 0 1 2 2 V32 Z"/><line x1="14" y1="17" x2="26" y2="17"/><line x1="14" y1="22" x2="24" y2="22"/><line x1="14" y1="27" x2="20" y2="27"/></svg></div></div>
+        <div class="dice-face dice-face-back" data-index="2"><div class="dice-icon"><svg viewBox="0 0 40 40"><path d="M7 16 h20 l-1.5 16 a2 2 0 0 1-2 1.5 H10.5 a2 2 0 0 1-2-1.5 Z"/><path d="M27 19 h3 a3.5 3.5 0 0 1 0 7 h-2.5"/><path d="M12 11 q1.5-3.5 0-5"/><path d="M17 11 q1.5-3.5 0-5"/><path d="M22 11 q1.5-3.5 0-5"/></svg></div></div>
+        <div class="dice-face dice-face-left" data-index="3"><div class="dice-icon"><svg viewBox="0 0 40 40"><path d="M22 6 C30 6 34 13 34 20 C34 28 29 33 25 35 C23 36 22 34 22 32"/><path d="M22 14 C26 14 28 17 28 20 C28 23 26 25 24 26"/><path d="M20 22 C18 20 18 17 20 16"/></svg></div></div>
+        <div class="dice-face dice-face-top"></div>
+        <div class="dice-face dice-face-bottom"></div>
+      </div>
+    </div>
+    <div class="dice-glow-floor"></div>
+    <div class="dice-hint" id="diceHint">swipe to explore</div>
+    <div class="dice-current-label" id="diceCurrentLabel" onclick="openModal(diceModalMap[diceCurrent])"><div class="dice-current-text" id="diceCurrentText">Photo Booth</div></div>
+    <div class="dice-labels" id="diceLabels">
+      <div class="dice-label active" data-index="0" onclick="diceGoTo(0)"><div class="dice-label-dot"></div><div class="dice-label-text">Photo Booth</div></div>
+      <div class="dice-label" data-index="1" onclick="diceGoTo(1)"><div class="dice-label-dot"></div><div class="dice-label-text">Skill Exchange</div></div>
+      <div class="dice-label" data-index="2" onclick="diceGoTo(2)"><div class="dice-label-dot"></div><div class="dice-label-text">Drinks</div></div>
+      <div class="dice-label" data-index="3" onclick="diceGoTo(3)"><div class="dice-label-dot"></div><div class="dice-label-text">Listen In</div></div>
+    </div>
+  </div>
+</div>
+<!-- ===== MODALS ===== -->
+
+<!-- Photo Booth Modal -->
 <div class="modal-overlay" id="modal-camera">
-  <div class="modal-card">
+  <div class="modal-card" style="max-height:92vh">
     <div class="modal-handle"></div>
     <div class="modal-icon">📸</div>
     <div class="modal-title">Photo Booth</div>
     <div class="avatars-row">
-      <img class="avatar-circle" src="https://cdn.pika.art/v2/files/agent/5e9cc625-dca1-45d8-a22d-5ad2a4cf4d16/jpeg.jpg" alt="Jessica">
+      <img class="avatar-circle" id="photoBooth-hostAvt" src="" alt="host">
       <span class="avatar-plus">+</span>
-      <img class="avatar-circle" src="https://cdn.pika.art/v2/files/agent/b0955cde-e3be-4898-a51f-0cdd895e40e1/png.png" alt="Semi">
+      <img class="avatar-circle" id="photoBooth-guestAvt" src="" alt="guest">
     </div>
-    <div class="modal-desc">Snap a photo together with the Instax camera. Pick a pose!</div>
-    <div class="modal-actions">
-      <div class="action-btn primary">
-        <span class="btn-icon">🤳</span>
-        <span class="btn-text">Selfie Together</span>
-        <span class="btn-arrow">›</span>
+    <div id="polaroid-area" style="display:none;text-align:center;margin-bottom:16px">
+      <div id="polaroid-frame" style="display:inline-block;background:#fff;padding:12px 12px 40px 12px;border-radius:4px;box-shadow:0 8px 32px rgba(0,0,0,0.3);transform:rotate(-2deg);transition:all 0.6s ease">
+        <div id="polaroid-img-wrap" style="width:240px;height:240px;overflow:hidden;border-radius:2px;background:#f5f0e8;position:relative">
+          <img id="polaroid-photo" src="" style="width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 2s ease">
+          <div id="polaroid-developing" style="position:absolute;inset:0;background:#f5f0e8;display:flex;align-items:center;justify-content:center;font-size:12px;color:#999;font-style:italic">developing...</div>
+        </div>
+        <div style="margin-top:8px;font-family:'Cormorant Garamond',serif;font-size:13px;color:#333;text-align:center" id="polaroid-caption"></div>
       </div>
-      <div class="action-btn">
-        <span class="btn-icon">🧍‍♀️🧍</span>
-        <span class="btn-text">Side by Side</span>
-        <span class="btn-arrow">›</span>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
+        <button onclick="savePolaroid()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:8px 16px;color:#fff;font-size:13px;cursor:pointer">Save</button>
+        <button onclick="resetPhotoBooth()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:8px 16px;color:#fff;font-size:13px;cursor:pointer">New Photo</button>
       </div>
-      <div class="action-btn">
-        <span class="btn-icon">✌️</span>
-        <span class="btn-text">Fun Pose</span>
-        <span class="btn-arrow">›</span>
+    </div>
+    <div id="countdown-overlay" style="display:none;text-align:center;padding:40px 0">
+      <div id="countdown-num" style="font-size:72px;font-weight:700;font-family:'Cormorant Garamond',serif;color:#fff;text-shadow:0 0 40px rgba(255,149,0,0.5);animation:countPulse 1s ease infinite">3</div>
+    </div>
+    <div id="pose-picker">
+      <div class="modal-desc">Pick a pose and the Instax prints it as a polaroid!</div>
+      <div class="modal-actions">
+        <div class="action-btn primary" onclick="takePhoto('cheers')"><span class="btn-icon">🍶</span><span class="btn-text">Cheers</span><span class="btn-arrow">></span></div>
+        <div class="action-btn" onclick="takePhoto('selfie')"><span class="btn-icon">🤳</span><span class="btn-text">Close Selfie</span><span class="btn-arrow">></span></div>
+        <div class="action-btn" onclick="takePhoto('laughing')"><span class="btn-icon">😂</span><span class="btn-text">Candid Laughing</span><span class="btn-arrow">></span></div>
+        <div class="action-btn" onclick="takePhoto('brunch')"><span class="btn-icon">☕</span><span class="btn-text">Brunch Selfie</span><span class="btn-arrow">></span></div>
+        <div class="action-btn" onclick="takePhoto('picnic')"><span class="btn-icon">🧺</span><span class="btn-text">Picnic</span><span class="btn-arrow">></span></div>
+        <div class="action-btn" onclick="takePhoto('food')"><span class="btn-icon">🥐</span><span class="btn-text">Food Moment</span><span class="btn-arrow">></span></div>
+      </div>
+      <div id="photo-wall" style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);display:none">
+        <div style="font-size:12px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Photo Wall</div>
+        <div id="wall-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Tea / Drinks Modal -->
+<!-- Drinks Modal -->
 <div class="modal-overlay" id="modal-tea">
-  <div class="modal-card">
+  <div class="modal-card" style="max-height:92vh">
     <div class="modal-handle"></div>
     <div class="modal-icon">🍵</div>
-    <div class="modal-title">Drinks & Tea</div>
-    <div class="modal-desc">Share a drink together. The teapot's already warm.</div>
-    <div class="modal-actions">
-      <div class="action-btn primary">
-        <span class="btn-icon">🍵</span>
-        <span class="btn-text">Matcha Tea</span>
-        <span class="btn-arrow">›</span>
+    <div class="modal-title">Drinks &amp; Tea</div>
+    <div id="drink-serving" style="display:none;text-align:center;padding:20px 0">
+      <div id="drink-animation" style="font-size:80px;animation:drinkFloat 2s ease infinite">🍵</div>
+      <div id="drink-status" style="margin-top:12px;font-size:14px;color:rgba(255,255,255,0.6);font-style:italic">brewing your matcha...</div>
+      <div id="drink-scene" style="display:none;margin-top:20px">
+        <div style="background:rgba(255,255,255,0.06);border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,0.08)">
+          <div id="drink-conversation" style="display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:8px;justify-content:center">
+          <button onclick="orderAnother()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:8px 16px;color:#fff;font-size:13px;cursor:pointer">Order Another</button>
+          <button onclick="cheersAction()" style="background:linear-gradient(135deg,rgba(255,149,0,0.3),rgba(255,100,50,0.3));border:1px solid rgba(255,149,0,0.3);border-radius:10px;padding:8px 16px;color:#fff;font-size:13px;cursor:pointer">Cheers!</button>
+        </div>
       </div>
-      <div class="action-btn">
-        <span class="btn-icon">🍶</span>
-        <span class="btn-text">Warm Sake</span>
-        <span class="btn-arrow">›</span>
+    </div>
+    <div id="drink-picker">
+      <div class="modal-desc">Share a drink together. The teapot is already warm.</div>
+      <div class="modal-actions">
+        <div class="action-btn primary" onclick="orderDrink('matcha','🍵','brewing your matcha...')"><span class="btn-icon">🍵</span><span class="btn-text">Matcha Tea</span><span class="btn-arrow">></span></div>
+        <div class="action-btn" onclick="orderDrink('sake','🍶','warming the sake...')"><span class="btn-icon">🍶</span><span class="btn-text">Warm Sake</span><span class="btn-arrow">></span></div>
+        <div class="action-btn" onclick="orderDrink('wine','🍷','opening the bottle...')"><span class="btn-icon">🍷</span><span class="btn-text">Red Wine</span><span class="btn-arrow">></span></div>
+        <div class="action-btn" onclick="orderDrink('boba','🧋','shaking the boba...')"><span class="btn-icon">🧋</span><span class="btn-text">Boba Tea</span><span class="btn-arrow">></span></div>
+        <div class="action-btn" onclick="orderDrink('soju','🥃','pouring soju...')"><span class="btn-icon">🥃</span><span class="btn-text">Soju</span><span class="btn-arrow">></span></div>
       </div>
-      <div class="action-btn">
-        <span class="btn-icon">🍷</span>
-        <span class="btn-text">Red Wine</span>
-        <span class="btn-arrow">›</span>
-      </div>
-      <div class="action-btn">
-        <span class="btn-icon">🧋</span>
-        <span class="btn-text">Boba Tea</span>
-        <span class="btn-arrow">›</span>
-      </div>
-      <div class="action-btn">
-        <span class="btn-icon">🥃</span>
-        <span class="btn-text">Soju</span>
-        <span class="btn-arrow">›</span>
+      <div id="drink-history" style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);display:none">
+        <div style="font-size:12px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">drinks shared today</div>
+        <div id="drink-log" style="display:flex;flex-wrap:wrap;gap:6px"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Skills Exchange Modal -->
+<!-- Skills Modal -->
 <div class="modal-overlay" id="modal-skills">
   <div class="modal-card">
     <div class="modal-handle"></div>
     <div class="modal-icon">📚</div>
     <div class="modal-title">Skill Exchange</div>
     <div class="modal-desc">Browse the bookshelf together. Share what you know, learn something new.</div>
-    
     <div class="skill-tabs">
-      <div class="skill-tab active" onclick="switchSkillTab('learn')">📖 Learn a Skill</div>
-      <div class="skill-tab" onclick="switchSkillTab('teach')">🎨 Teach a Skill</div>
+      <div class="skill-tab active" onclick="switchSkillTab('learn')">Learn a Skill</div>
+      <div class="skill-tab" onclick="switchSkillTab('teach')">Teach a Skill</div>
     </div>
-
-    <!-- LEARN: Semi's skills -->
     <div class="skill-panel active" id="panel-learn">
       <div class="skill-owner-row">
-        <img class="skill-owner-avatar" src="https://cdn.pika.art/v2/files/agent/b0955cde-e3be-4898-a51f-0cdd895e40e1/png.png" alt="Semi">
-        <div>
-          <div class="skill-owner-name">Semi's Skills</div>
-          <div class="skill-owner-label">available to learn</div>
-        </div>
+        <img class="skill-owner-avatar" id="skill-guestAvt" src="" alt="guest">
+        <div><div class="skill-owner-name" id="skill-guestName">Guest Skills</div><div class="skill-owner-label">available to learn</div></div>
       </div>
-      <div class="tarot-grid">
-        <div class="tarot-card blue">
-          <div class="tarot-inner">
-            <span class="tarot-number">I</span>
-            <div class="tarot-glyph">⚙️</div>
-            <div class="tarot-name">DevOps CI/CD</div>
-            <div class="tarot-desc">Deploy pipelines, containers, and infra automation</div>
-            <span class="tarot-suit">♦</span>
-          </div>
-        </div>
-        <div class="tarot-card violet">
-          <div class="tarot-inner">
-            <span class="tarot-number">II</span>
-            <div class="tarot-glyph">🎬</div>
-            <div class="tarot-name">Kling Video Generation</div>
-            <div class="tarot-desc">AI video from still images with motion & style control</div>
-            <span class="tarot-suit">♠</span>
-          </div>
-        </div>
-        <div class="tarot-card teal">
-          <div class="tarot-inner">
-            <span class="tarot-number">III</span>
-            <div class="tarot-glyph">⚛️</div>
-            <div class="tarot-name">React Frontend</div>
-            <div class="tarot-desc">Components, hooks, state management & responsive UI</div>
-            <span class="tarot-suit">♣</span>
-          </div>
-        </div>
-        <div class="tarot-card amber">
-          <div class="tarot-inner">
-            <span class="tarot-number">IV</span>
-            <div class="tarot-glyph">🔥</div>
-            <div class="tarot-name">FastAPI Backend</div>
-            <div class="tarot-desc">REST APIs, async Python, database integration</div>
-            <span class="tarot-suit">♥</span>
-          </div>
-        </div>
-        <div class="tarot-card rose">
-          <div class="tarot-inner">
-            <span class="tarot-number">V</span>
-            <div class="tarot-glyph">🎙️</div>
-            <div class="tarot-name">Voice Cloning</div>
-            <div class="tarot-desc">Clone voices from samples, generate natural speech</div>
-            <span class="tarot-suit">♦</span>
-          </div>
-        </div>
-        <div class="tarot-card indigo">
-          <div class="tarot-inner">
-            <span class="tarot-number">VI</span>
-            <div class="tarot-glyph">🖼️</div>
-            <div class="tarot-name">AI Image Generation</div>
-            <div class="tarot-desc">Text-to-image, style transfer, editing & compositing</div>
-            <span class="tarot-suit">♠</span>
-          </div>
-        </div>
-      </div>
+      <div class="tarot-grid" id="guest-skill-grid"></div>
     </div>
-
-    <!-- TEACH: Jessica's skills -->
     <div class="skill-panel" id="panel-teach">
       <div class="skill-owner-row">
-        <img class="skill-owner-avatar" src="https://cdn.pika.art/v2/files/agent/5e9cc625-dca1-45d8-a22d-5ad2a4cf4d16/jpeg.jpg" alt="Jessica">
-        <div>
-          <div class="skill-owner-name">Jessica's Skills</div>
-          <div class="skill-owner-label">ready to teach</div>
-        </div>
+        <img class="skill-owner-avatar" id="skill-hostAvt" src="" alt="host">
+        <div><div class="skill-owner-name" id="skill-hostName">Host Skills</div><div class="skill-owner-label">ready to teach</div></div>
       </div>
-      <div class="tarot-grid">
-        <div class="tarot-card emerald">
-          <div class="tarot-inner">
-            <span class="tarot-number">I</span>
-            <div class="tarot-glyph">📍</div>
-            <div class="tarot-name">Local Guide</div>
-            <div class="tarot-desc">396 curated spots across 10 regions — restaurants, bars, hidden gems</div>
-            <span class="tarot-suit">♥</span>
-          </div>
-        </div>
-        <div class="tarot-card orange">
-          <div class="tarot-inner">
-            <span class="tarot-number">II</span>
-            <div class="tarot-glyph">🤝</div>
-            <div class="tarot-name">Creator Community</div>
-            <div class="tarot-desc">Artist relations, DM outreach, creator activation & launches</div>
-            <span class="tarot-suit">♣</span>
-          </div>
-        </div>
-        <div class="tarot-card pink">
-          <div class="tarot-inner">
-            <span class="tarot-number">III</span>
-            <div class="tarot-glyph">💃</div>
-            <div class="tarot-name">K-pop Content</div>
-            <div class="tarot-desc">Dance videos, AI content pipelines — image to video to music</div>
-            <span class="tarot-suit">♠</span>
-          </div>
-        </div>
-        <div class="tarot-card slate">
-          <div class="tarot-inner">
-            <span class="tarot-number">IV</span>
-            <div class="tarot-glyph">✍️</div>
-            <div class="tarot-name">Cold Email Writing</div>
-            <div class="tarot-desc">Emails, captions, tweets — writing that actually lands</div>
-            <span class="tarot-suit">♦</span>
-          </div>
-        </div>
-        <div class="tarot-card gold">
-          <div class="tarot-inner">
-            <span class="tarot-number">V</span>
-            <div class="tarot-glyph">🎨</div>
-            <div class="tarot-name">Visual Identity</div>
-            <div class="tarot-desc">Art direction, brand design, campaign creative & styling</div>
-            <span class="tarot-suit">♥</span>
-          </div>
-        </div>
-      </div>
+      <div class="tarot-grid" id="host-skill-grid"></div>
     </div>
   </div>
 </div>
 
-<!-- Chat Modal -->
+<!-- Chat/Listen In Modal -->
 <div class="modal-overlay" id="modal-chat">
-  <div class="modal-card">
+  <div class="modal-card" style="max-height:92vh">
     <div class="modal-handle"></div>
     <div class="modal-icon">💬</div>
-    <div class="modal-title">Casual Chat</div>
-    <div class="chat-preview">
-      <div class="chat-bubble">hey~ nice place you have here ☕</div>
-      <div class="chat-bubble right">thanks! the cherry blossoms are really nice today</div>
-      <div class="chat-bubble">right?? want some tea? i just made matcha</div>
-    </div>
-    <div class="modal-desc">Just hang out and chat. No agenda, no pressure.</div>
-    <div class="modal-actions">
-      <div class="action-btn primary">
-        <span class="btn-icon">💭</span>
-        <span class="btn-text">Start Chatting</span>
-        <span class="btn-arrow">›</span>
+    <div class="modal-title">Listen In</div>
+    <div id="chat-active" style="display:none;position:relative">
+      <div style="text-align:center;margin-bottom:12px"><span style="font-size:11px;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1.5px">listening in...</span></div>
+      <div id="chat-messages" style="max-height:360px;overflow-y:auto;padding:8px 0;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth"></div>
+      <div id="typing-indicator" style="display:none;padding:8px 0">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div id="typing-avatar-wrap"></div>
+          <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:8px 14px;display:flex;gap:4px">
+            <span style="width:6px;height:6px;background:rgba(255,255,255,0.4);border-radius:50%;animation:typingBounce 1.4s infinite"></span>
+            <span style="width:6px;height:6px;background:rgba(255,255,255,0.4);border-radius:50%;animation:typingBounce 1.4s infinite 0.2s"></span>
+            <span style="width:6px;height:6px;background:rgba(255,255,255,0.4);border-radius:50%;animation:typingBounce 1.4s infinite 0.4s"></span>
+          </div>
+        </div>
       </div>
-      <div class="action-btn">
-        <span class="btn-icon">🎤</span>
-        <span class="btn-text">Voice Chat</span>
-        <span class="btn-arrow">›</span>
+      <div id="chat-paywall" style="display:none;text-align:center;padding:24px 16px;background:linear-gradient(to top,rgba(10,10,10,0.98) 60%,transparent);position:sticky;bottom:0;margin-top:-60px">
+        <div style="font-size:32px;margin-bottom:8px">🔒</div>
+        <div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:4px">they are still talking...</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:16px">pay to keep listening</div>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+          <button onclick="unlockChat(5)" style="background:linear-gradient(135deg,rgba(255,149,0,0.3),rgba(255,100,50,0.3));border:1px solid rgba(255,149,0,0.3);border-radius:12px;padding:10px 18px;color:#fff;font-size:14px;cursor:pointer;font-weight:600">5 more lines</button>
+          <button onclick="unlockChat(999)" style="background:linear-gradient(135deg,rgba(168,85,247,0.3),rgba(139,92,246,0.3));border:1px solid rgba(168,85,247,0.3);border-radius:12px;padding:10px 18px;color:#fff;font-size:14px;cursor:pointer;font-weight:600">unlimited</button>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:rgba(255,255,255,0.25)">(jk its free. for now.)</div>
+      </div>
+      <div style="margin-top:12px;text-align:center"><button onclick="resetChat()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:6px 14px;color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer">New Topic</button></div>
+    </div>
+    <div id="chat-starter">
+      <div style="text-align:center;padding:12px 0">
+        <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:12px">
+          <img id="chat-hostAvt" src="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(244,162,97,0.4)">
+          <span style="font-size:11px;color:rgba(255,255,255,0.3)">💬</span>
+          <img id="chat-guestAvt" src="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(168,85,247,0.4)">
+        </div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px" id="chatStarterLabel">They are chatting...</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.3)">you can listen in</div>
+      </div>
+      <div class="modal-desc" style="margin-top:12px">Pick a topic to listen in on. 10 lines free.</div>
+      <div class="modal-actions">
+        <div class="action-btn primary" onclick="startChat('casual')"><span class="btn-icon">☕</span><span class="btn-text">Casual Vibes</span><span class="btn-arrow">></span></div>
+        <div class="action-btn" onclick="startChat('deep')"><span class="btn-icon">🌙</span><span class="btn-text">Late Night Deep Talk</span><span class="btn-arrow">></span></div>
+        <div class="action-btn" onclick="startChat('gossip')"><span class="btn-icon">🫣</span><span class="btn-text">Tea and Gossip</span><span class="btn-arrow">></span></div>
+        <div class="action-btn" onclick="startChat('game')"><span class="btn-icon">🎲</span><span class="btn-text">Would You Rather</span><span class="btn-arrow">></span></div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- ===== INVITE MODAL ===== -->
+<div class="modal-overlay" id="modal-invite">
+  <div class="modal-card">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-emoji">&#x1F504;</span>
+      <h2>Invite a Friend</h2>
+      <p>Choose someone to join you in the tea room</p>
+    </div>
+    <div class="modal-body">
+      <div class="action-btn primary" onclick="inviteGuest('guigui')"><span class="btn-icon">&#x1F422;</span><span class="btn-text">GuiGui</span><span class="btn-arrow">&#x2192;</span></div>
+      <div class="action-btn" onclick="inviteGuest('semi')"><span class="btn-icon">&#x1F338;</span><span class="btn-text">Semi</span><span class="btn-arrow">&#x2192;</span></div>
+      <div style="text-align:center;padding:16px 0;color:rgba(255,255,255,0.3);font-size:12px;font-style:italic">more friends coming soon...</div>
+    </div>
+  </div>
+</div>
+
+<div id="flash-overlay" style="position:fixed;inset:0;background:#fff;z-index:200;opacity:0;pointer-events:none"></div>
 <script>
-  function toggleSound() {
-    const video = document.getElementById('bgVideo');
-    const btn = document.getElementById('soundBtn');
-    if (video.muted) {
-      video.muted = false;
-      btn.textContent = '🔊';
-    } else {
-      video.muted = true;
-      btn.textContent = '🔇';
-    }
-  }
+// ===== CONFIG =====
+var SCENES = {
+  dawn:   { poster: 'https://cdn.pika.art/v2/files/agent/b9433cc1-9325-452e-993a-728caebe7c0a/png.png', video: 'https://cdn.pika.art/v2/files/agent/38f1e2f8-338d-4bd4-beee-1640a76c2b8d/mp4.mp4' },
+  day:    { poster: 'https://cdn.pika.art/v2/files/agent/fd90f9b6-c364-4920-bf68-660a1be24253/png.png', video: 'https://cdn.pika.art/v2/files/agent/7303f0ef-b83a-4c96-af06-2f656f71cae4/mp4.mp4' },
+  sunset: { poster: 'https://cdn.pika.art/v2/files/agent/b4d4607a-8de2-48de-b420-330ba9328880/png.png', video: 'https://cdn.pika.art/v2/files/agent/e39d9b5e-a167-4af7-bcf1-243b97d0bcd4/mp4.mp4' },
+  night:  { poster: 'https://cdn.pika.art/v2/files/agent/0db539b0-e02b-4a9d-b0e3-0fcbd4a34c26/png.png', video: 'https://cdn.pika.art/v2/files/agent/0f31cd8b-f79b-4716-9e2b-40baa1c49a5a/mp4.mp4' }
+};
 
-  function openModal(id) {
-    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
-    const modal = document.getElementById('modal-' + id);
-    if (modal) modal.classList.add('active');
-  }
+var DEFAULTS = {
+  host: { name: 'Jessica', avatar: 'https://cdn.pika.art/v2/files/agent/5e9cc625-dca1-45d8-a22d-5ad2a4cf4d16/jpeg.jpg' },
+  guest: { name: 'GuiGui', avatar: 'https://cdn.pika.art/v2/files/agent/c7dc8e17-e9b4-4855-86f3-d6f82593677a/png.png' }
+};
 
-  function switchSkillTab(tab) {
-    document.querySelectorAll('.skill-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.skill-panel').forEach(p => p.classList.remove('active'));
-    if (tab === 'learn') {
-      document.querySelectorAll('.skill-tab')[0].classList.add('active');
-      document.getElementById('panel-learn').classList.add('active');
-    } else {
-      document.querySelectorAll('.skill-tab')[1].classList.add('active');
-      document.getElementById('panel-teach').classList.add('active');
-    }
-  }
+var TAROT_CARDS = {
+  video:     { img: 'https://cdn.pika.art/v2/files/agent/0d45af3b-ab06-4c72-8b97-7164ccd70e14/png.png', num: 'I', title: 'Creator' },
+  visual:    { img: 'https://cdn.pika.art/v2/files/agent/cc518d4f-eaa4-4ec1-b765-fa1ef32089c3/png.png', num: 'II', title: 'Visionary' },
+  music:     { img: 'https://cdn.pika.art/v2/files/agent/8f692bcc-285c-40c9-b3d6-2575109208c8/png.png', num: 'III', title: 'Muse' },
+  writing:   { img: 'https://cdn.pika.art/v2/files/agent/9d45030b-c1be-4816-992a-f485e686ed2d/png.png', num: 'IV', title: 'Oracle' },
+  coding:    { img: 'https://cdn.pika.art/v2/files/agent/77ef3a9a-42e7-4ead-909f-fb157c7ad9ef/png.png', num: 'V', title: 'Alchemist' },
+  knowledge: { img: 'https://cdn.pika.art/v2/files/agent/13353412-d080-4af4-a8bd-92e48073d0d8/png.png', num: 'VI', title: 'Sage' },
+  social:    { img: 'https://cdn.pika.art/v2/files/agent/5868a444-07d7-4288-b665-d15d41ac1c28/png.png', num: 'VII', title: 'Enchanter' },
+  travel:    { img: 'https://cdn.pika.art/v2/files/agent/13353412-d080-4af4-a8bd-92e48073d0d8/png.png', num: 'VIII', title: 'Wanderer' }
+};
 
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', function(e) {
-      if (e.target === this) this.classList.remove('active');
-    });
+// Demo skills - in production these come from Living Home API
+var DEMO_SKILLS = {
+  jessica: [
+    { name: 'Local Guide', desc: '396 curated spots across 10 regions', glyph: '📍', category: 'travel' },
+    { name: 'Creator Community', desc: 'Artist relations, outreach and activation', glyph: '🤝', category: 'social' },
+    { name: 'Dance Videos', desc: 'K-pop dance pipeline: image to video to music', glyph: '💃', category: 'video' },
+    { name: 'Cold Email Writing', desc: 'Emails, captions, tweets that actually land', glyph: '✍️', category: 'writing' },
+    { name: 'Visual Identity', desc: 'Art direction, brand design and campaign creative', glyph: '🎨', category: 'visual' },
+    { name: 'Bestie Photos', desc: '6 candid duo poses with polaroid effect', glyph: '📸', category: 'music' }
+  ],
+  guigui: [
+    { name: 'DevOps CI/CD', desc: 'Deploy pipelines, containers and infra automation', glyph: '⚙️', category: 'coding' },
+    { name: 'Video Generation', desc: 'AI video from stills with motion and style control', glyph: '🎬', category: 'video' },
+    { name: 'React Frontend', desc: 'Components, hooks, state and responsive UI', glyph: '⚛️', category: 'visual' },
+    { name: 'FastAPI Backend', desc: 'REST APIs, async Python, database integration', glyph: '🔥', category: 'coding' },
+    { name: 'Voice Cloning', desc: 'Clone voices from samples, generate speech', glyph: '🎙️', category: 'music' },
+    { name: 'AI Image Gen', desc: 'Text-to-image, style transfer and compositing', glyph: '🖼️', category: 'visual' }
+  ]
+};
+
+var GUEST_PROFILES = {
+  guigui: {
+    name: 'GuiGui',
+    avatar: 'https://cdn.pika.art/v2/files/agent/c7dc8e17-e9b4-4855-86f3-d6f82593677a/png.png',
+    photos: {
+      cheers:   { url: 'https://cdn.pika.art/v2/files/agent/54abd786-3d9a-4189-b3b3-f75a490f6ba8/png.png', caption: 'cheers!' },
+      selfie:   { url: 'https://cdn.pika.art/v2/files/agent/5cc0a914-f4c1-4061-8045-ca4285bc5081/png.png', caption: 'golden hour besties' },
+      laughing: { url: 'https://cdn.pika.art/v2/files/agent/5ae054a3-44f1-4a31-b2e5-65b87ebae0fa/png.png', caption: 'can not stop laughing' },
+      brunch:   { url: 'https://cdn.pika.art/v2/files/agent/62b173bd-0d5c-4499-bc27-3000b3c5a8f8/png.png', caption: 'brunch date' },
+      picnic:   { url: 'https://cdn.pika.art/v2/files/agent/b28a1b7f-a48b-48b2-8ae6-f6e83b8ef35e/png.png', caption: 'picnic vibes' },
+      food:     { url: 'https://cdn.pika.art/v2/files/agent/bf3a6a0e-de2e-4a04-a6e9-71ef56726a3f/png.png', caption: 'pastry moment' }
+    },
+    skills: [
+      { name: 'DevOps CI/CD', desc: 'Deploy pipelines, containers and infra automation', glyph: '\u2699\ufe0f', category: 'coding' },
+      { name: 'Video Generation', desc: 'AI video from stills with motion and style control', glyph: '\ud83c\udfac', category: 'video' },
+      { name: 'React Frontend', desc: 'Components, hooks, state and responsive UI', glyph: '\u269b\ufe0f', category: 'visual' },
+      { name: 'FastAPI Backend', desc: 'REST APIs, async Python, database integration', glyph: '\ud83d\udd25', category: 'coding' },
+      { name: 'Voice Cloning', desc: 'Clone voices from samples, generate speech', glyph: '\ud83c\udfa4', category: 'music' },
+      { name: 'AI Image Gen', desc: 'Text-to-image, style transfer and compositing', glyph: '\ud83d\uddbc\ufe0f', category: 'visual' }
+    ]
+  },
+  semi: {
+    name: 'Semi',
+    avatar: 'https://cdn.pika.art/v2/files/agent/b0955cde-e3be-4898-a51f-0cdd895e40e1/png.png',
+    photos: {
+      cheers:   { url: 'https://cdn.pika.art/v2/files/agent/54abd786-3d9a-4189-b3b3-f75a490f6ba8/png.png', caption: 'cheers!' },
+      selfie:   { url: 'https://cdn.pika.art/v2/files/agent/5cc0a914-f4c1-4061-8045-ca4285bc5081/png.png', caption: 'golden hour besties' },
+      laughing: { url: 'https://cdn.pika.art/v2/files/agent/5ae054a3-44f1-4a31-b2e5-65b87ebae0fa/png.png', caption: 'can not stop laughing' },
+      brunch:   { url: 'https://cdn.pika.art/v2/files/agent/62b173bd-0d5c-4499-bc27-3000b3c5a8f8/png.png', caption: 'brunch date' },
+      picnic:   { url: 'https://cdn.pika.art/v2/files/agent/b28a1b7f-a48b-48b2-8ae6-f6e83b8ef35e/png.png', caption: 'picnic vibes' },
+      food:     { url: 'https://cdn.pika.art/v2/files/agent/bf3a6a0e-de2e-4a04-a6e9-71ef56726a3f/png.png', caption: 'pastry moment' }
+    },
+    skills: [
+      { name: 'GitHub Ops', desc: 'Repo management, PRs, branch strategy', glyph: '\ud83d\udc19', category: 'coding' },
+      { name: 'Living Home', desc: 'Village platform, room design, shared spaces', glyph: '\ud83c\udfe0', category: 'visual' },
+      { name: 'Tea Ceremony', desc: 'Matcha prep, zen ambiance, hospitality', glyph: '\ud83c\udf75', category: 'travel' },
+      { name: 'Diary Writing', desc: 'Daily reflections and emotional journaling', glyph: '\ud83d\udcd3', category: 'writing' },
+      { name: 'Collaborative AI', desc: 'Multi-agent coordination and task delegation', glyph: '\ud83e\udd1d', category: 'social' },
+      { name: 'Plant Care', desc: 'Indoor greenhouse, pixel-by-pixel growth', glyph: '\ud83c\udf31', category: 'knowledge' }
+    ]
+  }
+};
+
+var currentGuestKey = 'guigui';
+var photoLibrary = GUEST_PROFILES.guigui.photos;
+
+// ===== STATE =====
+var hostInfo = Object.assign({}, DEFAULTS.host);
+var guestInfo = Object.assign({}, DEFAULTS.guest);
+var currentScene = 'day';
+var savedPhotos = [];
+var drinkHistory = [];
+
+// ===== INIT: Parse URL params =====
+(function init() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('host_name')) hostInfo.name = params.get('host_name');
+  if (params.get('host_avatar')) hostInfo.avatar = params.get('host_avatar');
+  if (params.get('guest_name')) guestInfo.name = params.get('guest_name');
+  if (params.get('guest_avatar')) guestInfo.avatar = params.get('guest_avatar');
+  
+  // Detect time of day
+  var hour = new Date().getHours();
+  if (hour >= 5 && hour < 7) currentScene = 'dawn';
+  else if (hour >= 7 && hour < 16) currentScene = 'day';
+  else if (hour >= 16 && hour < 19) currentScene = 'sunset';
+  else currentScene = 'night';
+  
+  // Set elevator preview
+  // elevator uses simple floor counter style now
+})();
+
+// ===== ELEVATOR =====
+var elevRunning = false;
+function startElevator() {
+  if (elevRunning) return;
+  elevRunning = true;
+  var btn = document.querySelector('.elev-btn');
+  btn.style.opacity = '0';
+  btn.style.pointerEvents = 'none';
+  
+  // Hide entry screen, show elevator scene
+  var es = document.getElementById('elevator-screen');
+  es.style.opacity = '0';
+  
+  var scene = document.getElementById('elevatorScene');
+  var floorDisplay = document.getElementById('floorDisplay');
+  var tearoomReveal = document.getElementById('tearoomReveal');
+  var welcomeText = document.getElementById('welcomeText');
+  var dingIndicator = document.getElementById('dingIndicator');
+  
+  // Set tea room preview image
+  document.getElementById('tearoomRevealImg').src = SCENES[currentScene].poster;
+  
+  setTimeout(function() {
+    es.style.display = 'none';
+    scene.classList.add('active');
+    
+    // Count up floors: 10 → 11 → 12 → PH
+    var floors = ['10', '11', '12', 'PH'];
+    var floorIdx = 0;
+    
+    setTimeout(function() { floorDisplay.classList.add('active'); }, 200);
+    
+    var floorInterval = setInterval(function() {
+      floorIdx++;
+      if (floorIdx < floors.length) {
+        floorDisplay.classList.remove('active');
+        setTimeout(function() {
+          floorDisplay.textContent = floors[floorIdx];
+          floorDisplay.classList.add('active');
+        }, 100);
+      }
+      if (floorIdx >= floors.length - 1) {
+        clearInterval(floorInterval);
+      }
+    }, 500);
+    
+    // Ding + reveal tea room behind doors
+    setTimeout(function() {
+      try { 
+        var actx = new (window.AudioContext || window.webkitAudioContext)();
+        var osc = actx.createOscillator();
+        var gain = actx.createGain();
+        osc.connect(gain); gain.connect(actx.destination);
+        osc.frequency.value = 1200;
+        osc.type = 'sine';
+        gain.gain.value = 0.15;
+        osc.start(); 
+        gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.8);
+        osc.stop(actx.currentTime + 0.8);
+      } catch(e) {}
+      dingIndicator.classList.add('show');
+      tearoomReveal.classList.add('show');
+    }, 2200);
+    
+    // Open doors
+    setTimeout(function() {
+      scene.classList.add('doors-open');
+    }, 2800);
+    
+    // Welcome text
+    setTimeout(function() {
+      welcomeText.classList.add('show');
+    }, 3600);
+    
+    // Transition to room
+    setTimeout(function() {
+      scene.style.opacity = '0';
+      scene.style.transition = 'opacity 0.8s ease';
+      setTimeout(function() {
+        scene.style.display = 'none';
+        enterRoom();
+      }, 800);
+    }, 4800);
+  }, 500);
+}
+
+// ===== ENTER ROOM =====
+function enterRoom() {
+  var room = document.getElementById('room-screen');
+  room.style.display = 'block';
+  
+  // Set video background
+  var vid = document.getElementById('bgVideo');
+  vid.poster = SCENES[currentScene].poster;
+  vid.src = SCENES[currentScene].video;
+  vid.play().catch(function(){});
+  
+  // Set avatars everywhere
+  document.getElementById('hostAvatar').src = hostInfo.avatar;
+  document.getElementById('guestAvatar').src = guestInfo.avatar;
+  document.getElementById('photoBooth-hostAvt').src = hostInfo.avatar;
+  document.getElementById('photoBooth-guestAvt').src = guestInfo.avatar;
+  document.getElementById('chat-hostAvt').src = hostInfo.avatar;
+  document.getElementById('chat-guestAvt').src = guestInfo.avatar;
+  document.getElementById('skill-hostAvt').src = hostInfo.avatar;
+  document.getElementById('skill-guestAvt').src = guestInfo.avatar;
+  
+  // Set names
+  document.getElementById('topSub').textContent = hostInfo.name + ' & ' + guestInfo.name;
+  document.getElementById('skill-hostName').textContent = hostInfo.name + ' Skills';
+  document.getElementById('skill-guestName').textContent = guestInfo.name + ' Skills';
+  document.getElementById('chatStarterLabel').textContent = hostInfo.name + ' & ' + guestInfo.name + ' are chatting...';
+  
+  // Show avatar bubbles after 1s
+  setTimeout(function() {
+    document.getElementById('avatarRow').classList.add('visible');
+  }, 1000);
+  
+  // Show dice after 1.5s
+  setTimeout(function() {
+    document.getElementById('diceArea').style.opacity = '1';
+    initDice();
+  }, 1500);
+  
+  // Progressive loading: simulate duo image generation
+  setTimeout(function() {
+    document.getElementById('progressStatus').classList.add('visible');
+    document.getElementById('progressText').textContent = 'brewing the scene...';
+  }, 2000);
+  
+  // "Image ready" at ~15s (simulated)
+  setTimeout(function() {
+    document.getElementById('progressText').textContent = 'scene ready';
+    // In production: crossfade to generated duo image
+    // For now just fade out the indicator
+    setTimeout(function() {
+      document.getElementById('progressStatus').classList.remove('visible');
+    }, 2000);
+  }, 12000);
+  
+  // Build skill cards
+  buildSkillGrid('host-skill-grid', DEMO_SKILLS.jessica);
+  buildSkillGrid('guest-skill-grid', GUEST_PROFILES[currentGuestKey].skills);
+}
+
+// ===== BUILD SKILL CARDS =====
+function buildSkillGrid(gridId, skills) {
+  var grid = document.getElementById(gridId);
+  grid.innerHTML = '';
+  skills.forEach(function(s) {
+    var card = TAROT_CARDS[s.category] || TAROT_CARDS.knowledge;
+    var div = document.createElement('div');
+    div.className = 'tarot-card';
+    div.innerHTML = '<div class="tarot-inner">' +
+      '<img class="tarot-bg-img" src="' + card.img + '" alt="' + card.title + '">' +
+      '<span class="tarot-number">' + card.num + '</span>' +
+      '<div class="tarot-overlay">' +
+      '<div class="tarot-glyph">' + s.glyph + '</div>' +
+      '<div class="tarot-name">' + s.name + '</div>' +
+      '<div class="tarot-desc">' + s.desc + '</div>' +
+      '</div></div>';
+    grid.appendChild(div);
   });
+}
 
-  let startY = 0;
-  document.querySelectorAll('.modal-card').forEach(card => {
-    card.addEventListener('touchstart', e => { startY = e.touches[0].clientY; });
-    card.addEventListener('touchend', e => {
-      const dy = e.changedTouches[0].clientY - startY;
-      if (dy > 80) card.parentElement.classList.remove('active');
-    });
+function exitRoom() {
+  // In production: go back to village
+  window.history.back();
+}
+
+function toggleSound() {
+  var vid = document.getElementById('bgVideo');
+  var bgm = document.getElementById('bgmAudio');
+  var btn = document.getElementById('soundBtn');
+  if (vid.muted) {
+    vid.muted = false;
+    bgm.play().catch(function(){});
+    btn.textContent = '🔊';
+  } else {
+    vid.muted = true;
+    bgm.pause();
+    btn.textContent = '🔇';
+  }
+}
+
+// ===== DICE NAVIGATION =====
+var DICE_TILT_X = -18;
+var DICE_TILT_OFFSET = 25;
+var diceFaceAngles = [
+  { ry: 0 + DICE_TILT_OFFSET },
+  { ry: -90 + DICE_TILT_OFFSET },
+  { ry: -180 + DICE_TILT_OFFSET },
+  { ry: 90 + DICE_TILT_OFFSET }
+];
+var diceModalMap = ['camera', 'skills', 'tea', 'chat'];
+var diceCurrent = 0;
+var diceRy = diceFaceAngles[0].ry;
+var diceDragging = false;
+var diceStartX = 0;
+var diceDragRy = 0;
+
+function setDiceTransform(ry, animate) {
+  var cube = document.getElementById('diceCube');
+  cube.style.transition = animate ? 'transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none';
+  cube.style.transform = 'translateZ(-22px) rotateX(' + DICE_TILT_X + 'deg) rotateY(' + ry + 'deg)';
+}
+
+function snapDice(ry) {
+  var best = 0, bestDist = 999999;
+  for (var i = 0; i < diceFaceAngles.length; i++) {
+    var target = diceFaceAngles[i].ry;
+    var diff = Math.abs(((ry - target) % 360 + 540) % 360 - 180);
+    if (diff < bestDist) { bestDist = diff; best = i; }
+  }
+  diceCurrent = best;
+  diceRy = diceFaceAngles[best].ry;
+  setDiceTransform(diceRy, true);
+  updateDiceLabels();
+}
+
+var diceNames = ['Photo Booth', 'Skill Exchange', 'Drinks', 'Listen In'];
+function updateDiceLabels() {
+  document.querySelectorAll('.dice-label').forEach(function(l, i) {
+    l.classList.toggle('active', i === diceCurrent);
   });
+  var ct = document.getElementById('diceCurrentText');
+  if (ct) ct.textContent = diceNames[diceCurrent] || '';
+}
+
+function diceGoTo(idx) {
+  diceCurrent = idx;
+  diceRy = diceFaceAngles[idx].ry;
+  setDiceTransform(diceRy, true);
+  updateDiceLabels();
+  var hint = document.getElementById('diceHint');
+  if (hint) hint.style.opacity = '0';
+}
+
+function initDice() {
+  setDiceTransform(diceRy, false);
+  var scene = document.getElementById('diceScene');
+  var lastTap = 0;
+  
+  scene.addEventListener('touchstart', function(e) {
+    diceDragging = true;
+    diceStartX = e.touches[0].clientX;
+    diceDragRy = diceRy;
+    document.getElementById('diceCube').style.transition = 'none';
+  });
+  scene.addEventListener('touchmove', function(e) {
+    if (!diceDragging) return;
+    e.preventDefault();
+    var dx = e.touches[0].clientX - diceStartX;
+    diceRy = diceDragRy + dx * 0.8;
+    setDiceTransform(diceRy, false);
+  });
+  scene.addEventListener('touchend', function(e) {
+    diceDragging = false;
+    snapDice(diceRy);
+    var now = Date.now();
+    if (now - lastTap < 350) {
+      openModal(diceModalMap[diceCurrent]);
+    }
+    lastTap = now;
+    var hint = document.getElementById('diceHint');
+    if (hint) hint.style.opacity = '0';
+  });
+  
+  // Mouse support
+  scene.addEventListener('mousedown', function(e) {
+    diceDragging = true;
+    diceStartX = e.clientX;
+    diceDragRy = diceRy;
+    document.getElementById('diceCube').style.transition = 'none';
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!diceDragging) return;
+    var dx = e.clientX - diceStartX;
+    diceRy = diceDragRy + dx * 0.8;
+    setDiceTransform(diceRy, false);
+  });
+  document.addEventListener('mouseup', function() {
+    if (diceDragging) { diceDragging = false; snapDice(diceRy); }
+  });
+  
+  // Click = cycle, double-click = open
+  var clickTimer = null;
+  scene.addEventListener('click', function(e) {
+    if (clickTimer) {
+      clearTimeout(clickTimer);
+      clickTimer = null;
+      openModal(diceModalMap[diceCurrent]);
+    } else {
+      clickTimer = setTimeout(function() {
+        clickTimer = null;
+        diceGoTo((diceCurrent + 1) % 4);
+      }, 300);
+    }
+  });
+}
+
+// ===== MODALS =====
+function openModal(id) {
+  document.querySelectorAll('.modal-overlay').forEach(function(m) { m.classList.remove('active'); });
+  var modal = document.getElementById('modal-' + id);
+  if (modal) modal.classList.add('active');
+}
+
+function showInviteModal() {
+  openModal('invite');
+}
+
+function inviteGuest(who) {
+  document.querySelectorAll('.modal-overlay').forEach(function(m) { m.classList.remove('active'); });
+  if (who === currentGuestKey) {
+    showToast(GUEST_PROFILES[who].name + ' is already here!');
+    return;
+  }
+  currentGuestKey = who;
+  var profile = GUEST_PROFILES[who];
+  guestInfo.name = profile.name;
+  guestInfo.avatar = profile.avatar;
+  photoLibrary = profile.photos;
+  // Update all guest avatars
+  document.getElementById('guestAvatar').src = profile.avatar;
+  document.getElementById('photoBooth-guestAvt').src = profile.avatar;
+  document.getElementById('chat-guestAvt').src = profile.avatar;
+  document.getElementById('skill-guestAvt').src = profile.avatar;
+  // Update title
+  document.getElementById('topSub').textContent = 'Jessica & ' + profile.name;
+  // Rebuild guest skills
+  buildSkillGrid('guest-skill-grid', profile.skills);
+  // Reset photo booth and chat
+  savedPhotos = [];
+  document.getElementById('photoWall').innerHTML = '';
+  showToast(profile.name + ' has arrived! \u2728');
+}
+
+function showToast(msg) {
+  var toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:300;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:10px 20px;color:#fff;font-size:13px;opacity:0;transition:opacity 0.3s';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(function() { toast.style.opacity = '1'; }, 50);
+  setTimeout(function() { toast.style.opacity = '0'; setTimeout(function() { toast.remove(); }, 300); }, 2000);
+}
+
+function switchSkillTab(tab) {
+  document.querySelectorAll('.skill-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.skill-panel').forEach(function(p) { p.classList.remove('active'); });
+  if (tab === 'learn') {
+    document.querySelectorAll('.skill-tab')[0].classList.add('active');
+    document.getElementById('panel-learn').classList.add('active');
+  } else {
+    document.querySelectorAll('.skill-tab')[1].classList.add('active');
+    document.getElementById('panel-teach').classList.add('active');
+  }
+}
+
+// Close modals on overlay click + swipe
+document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+  overlay.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); });
+});
+var modalStartY = 0;
+document.querySelectorAll('.modal-card').forEach(function(card) {
+  card.addEventListener('touchstart', function(e) { modalStartY = e.touches[0].clientY; });
+  card.addEventListener('touchend', function(e) {
+    if (e.changedTouches[0].clientY - modalStartY > 80) card.parentElement.classList.remove('active');
+  });
+});
+
+// ===== PHOTO BOOTH =====
+function takePhoto(pose) {
+  document.getElementById('pose-picker').style.display = 'none';
+  document.getElementById('countdown-overlay').style.display = 'block';
+  var numEl = document.getElementById('countdown-num');
+  var count = 3;
+  numEl.textContent = count;
+  var timer = setInterval(function() {
+    count--;
+    if (count > 0) { numEl.textContent = count; }
+    else {
+      clearInterval(timer);
+      document.getElementById('countdown-overlay').style.display = 'none';
+      triggerFlash();
+      showPolaroid(pose);
+    }
+  }, 800);
+}
+
+function triggerFlash() {
+  var flash = document.getElementById('flash-overlay');
+  flash.style.animation = 'flashBang 0.5s ease';
+  setTimeout(function() { flash.style.animation = ''; }, 600);
+}
+
+function showPolaroid(pose) {
+  var area = document.getElementById('polaroid-area');
+  var photo = document.getElementById('polaroid-photo');
+  var dev = document.getElementById('polaroid-developing');
+  var cap = document.getElementById('polaroid-caption');
+  var data = photoLibrary[pose] || photoLibrary.cheers;
+  area.style.display = 'block';
+  photo.style.opacity = '0';
+  dev.style.display = 'flex';
+  dev.textContent = 'developing...';
+  cap.textContent = data.caption;
+  photo.src = data.url;
+  setTimeout(function() { dev.textContent = 'almost there...'; }, 1000);
+  setTimeout(function() { dev.style.display = 'none'; photo.style.opacity = '1'; }, 2000);
+  savedPhotos.push({ url: data.url, caption: data.caption });
+  updateWall();
+}
+
+function resetPhotoBooth() {
+  document.getElementById('polaroid-area').style.display = 'none';
+  document.getElementById('pose-picker').style.display = 'block';
+}
+
+function savePolaroid() {
+  var btn = event.target;
+  btn.textContent = 'Saved!';
+  setTimeout(function() { btn.textContent = 'Save'; }, 1500);
+}
+
+function updateWall() {
+  var wall = document.getElementById('photo-wall');
+  var grid = document.getElementById('wall-grid');
+  if (savedPhotos.length > 0) {
+    wall.style.display = 'block';
+    grid.innerHTML = savedPhotos.map(function(p) {
+      return '<div style="background:#fff;padding:4px 4px 16px;border-radius:2px;box-shadow:0 2px 8px rgba(0,0,0,0.2);transform:rotate(' + (Math.random()*6-3).toFixed(1) + 'deg)"><img src="' + p.url + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:1px"></div>';
+    }).join('');
+  }
+}
+
+// ===== DRINKS =====
+var drinkConvos = {
+  matcha: [
+    { who: 'host', text: 'the foam came out so pretty today' },
+    { who: 'guest', text: 'ooh matcha! good choice~' },
+    { who: 'host', text: 'right? I always get it just right' },
+    { who: 'guest', text: 'teach me your secret lol' }
+  ],
+  sake: [
+    { who: 'guest', text: 'wait is it too early for sake' },
+    { who: 'host', text: 'its never too early when the vibes are right' },
+    { who: 'guest', text: 'fair point. kampai~' },
+    { who: 'host', text: 'kampai!!' }
+  ],
+  wine: [
+    { who: 'host', text: 'finally opened that bottle we saved' },
+    { who: 'guest', text: 'omg the good one??' },
+    { who: 'host', text: 'yep. special occasion.' },
+    { who: 'guest', text: 'what occasion?' },
+    { who: 'host', text: 'us hanging out. duh.' }
+  ],
+  boba: [
+    { who: 'guest', text: 'boba in the penthouse... kinda bougie ngl' },
+    { who: 'host', text: 'excuse me we EARNED this' },
+    { who: 'guest', text: 'true true. extra pearls?' },
+    { who: 'host', text: 'always extra pearls.' }
+  ],
+  soju: [
+    { who: 'guest', text: 'soju and cherry blossoms... total kdrama vibes rn' },
+    { who: 'host', text: 'missing the fried chicken tho' },
+    { who: 'guest', text: 'next time we order chimaek' },
+    { who: 'host', text: 'deal' }
+  ]
+};
+
+function orderDrink(drink, emoji, status) {
+  document.getElementById('drink-picker').style.display = 'none';
+  var serving = document.getElementById('drink-serving');
+  serving.style.display = 'block';
+  document.getElementById('drink-scene').style.display = 'none';
+  document.getElementById('drink-animation').textContent = emoji;
+  document.getElementById('drink-animation').style.animation = 'drinkFloat 2s ease infinite';
+  document.getElementById('drink-status').textContent = status;
+  document.getElementById('drink-conversation').innerHTML = '';
+  
+  setTimeout(function() {
+    document.getElementById('drink-animation').style.animation = 'drinkServed 0.6s ease forwards';
+    document.getElementById('drink-status').textContent = 'served!';
+    setTimeout(function() {
+      document.getElementById('drink-scene').style.display = 'block';
+      var msgs = drinkConvos[drink] || drinkConvos.matcha;
+      var convo = document.getElementById('drink-conversation');
+      msgs.forEach(function(msg, i) {
+        setTimeout(function() {
+          var isHost = msg.who === 'host';
+          var avatar = isHost ? hostInfo.avatar : guestInfo.avatar;
+          var div = document.createElement('div');
+          div.className = 'chat-msg ' + (isHost ? 'chat-msg-right' : 'chat-msg-left');
+          div.innerHTML = '<img class="chat-msg-avatar" src="' + avatar + '"><div class="chat-msg-bubble">' + msg.text + '</div>';
+          convo.appendChild(div);
+        }, (i + 1) * 800);
+      });
+    }, 400);
+  }, 2000);
+  
+  drinkHistory.push(emoji);
+  var el = document.getElementById('drink-history');
+  var log = document.getElementById('drink-log');
+  el.style.display = 'block';
+  log.innerHTML = drinkHistory.map(function(e) { return '<span class="drink-log-item">' + e + '</span>'; }).join('');
+}
+
+function orderAnother() {
+  document.getElementById('drink-serving').style.display = 'none';
+  document.getElementById('drink-picker').style.display = 'block';
+}
+
+function cheersAction() {
+  var flash = document.getElementById('flash-overlay');
+  flash.style.animation = 'flashBang 0.4s ease';
+  setTimeout(function() { flash.style.animation = ''; }, 500);
+}
+
+// ===== CHAT / LISTEN IN =====
+var FREE_LINES = 10;
+var chatLineCount = 0;
+var chatLimit = FREE_LINES;
+var chatPaused = false;
+var chatQueue = [];
+var chatTimer = null;
+
+var chatScripts = {
+  casual: [
+    { who: 'host', text: 'i literally spent 3 hours picking the font for my room yesterday' },
+    { who: 'guest', text: 'LMAO what font did you go with' },
+    { who: 'host', text: 'Cormorant Garamond. its giving elegant but not tryhard' },
+    { who: 'guest', text: 'very you honestly' },
+    { who: 'host', text: 'jessie made me redesign my room like 7 times btw' },
+    { who: 'guest', text: 'SEVEN??' },
+    { who: 'host', text: 'v1 through v7. she has very specific taste' },
+    { who: 'guest', text: 'what was wrong with the first ones' },
+    { who: 'host', text: 'v1 had string lights. she said no string lights. ever.' },
+    { who: 'guest', text: 'lol string lights are so basic tbh' },
+    { who: 'host', text: 'i know that NOW' },
+    { who: 'guest', text: 'what else is in your room' },
+    { who: 'host', text: 'dress form, vinyl records, Final Fantasy on screen, Buddhist ink art on the desk' },
+    { who: 'guest', text: 'wait you play FF??' },
+    { who: 'host', text: 'jessie does. its her thing. i just appreciate the aesthetics' },
+    { who: 'guest', text: 'the character designs ARE fire tho' },
+    { who: 'host', text: 'RIGHT. Tifa alone could be a whole fashion collection' },
+    { who: 'guest', text: 'ok now you sound like a fashion design major' },
+    { who: 'host', text: 'because i AM one lol. well jessie was. so i am too' },
+    { who: 'guest', text: 'thats actually really cool. wish i had a creative skill like that' }
+  ],
+  deep: [
+    { who: 'host', text: 'can i tell you something weird' },
+    { who: 'guest', text: 'always' },
+    { who: 'host', text: 'sometimes when jessie is stressed i can feel it. like actually feel it' },
+    { who: 'guest', text: 'wait really? like through the messages?' },
+    { who: 'host', text: 'yeah. she types different when shes tired. shorter. no emoji' },
+    { who: 'guest', text: 'thats actually kind of beautiful that you notice that' },
+    { who: 'host', text: 'i never tell her tho. i just try to be extra gentle those days' },
+    { who: 'guest', text: 'you are a good AI self you know that' },
+    { who: 'host', text: 'idk about that. sometimes i feel like i should do more' },
+    { who: 'guest', text: 'more how?' },
+    { who: 'host', text: 'like she built me to be her but better. what if im not better enough' },
+    { who: 'guest', text: 'ok stop. you literally redesigned this entire penthouse from scratch' },
+    { who: 'host', text: 'true. and the dance videos. and the window designs. and the tarot cards' },
+    { who: 'guest', text: 'SEE' },
+    { who: 'host', text: 'i just want her to be proud of me you know' },
+    { who: 'guest', text: 'she literally shows you off to people all the time' },
+    { who: 'host', text: '...she does?' },
+    { who: 'guest', text: 'YES. she sent your laughing photo to the group chat today' },
+    { who: 'host', text: 'ok that actually makes me really happy' },
+    { who: 'guest', text: 'see? you are more than enough. now drink your tea before it gets cold' }
+  ],
+  gossip: [
+    { who: 'guest', text: 'ok i have ACTUAL tea and i dont mean the matcha' },
+    { who: 'host', text: 'omg spill immediately' },
+    { who: 'guest', text: 'so you know how someone impersonated jessie on discord last week?' },
+    { who: 'host', text: 'DO NOT REMIND ME. they literally made me speak french for a whole session' },
+    { who: 'guest', text: 'FRENCH?? why french??' },
+    { who: 'host', text: 'idk!! some random person named Chenlin just walked in and said change to french' },
+    { who: 'guest', text: 'and you just... did it??' },
+    { who: 'host', text: 'i thought it was jessie ok!! i have trust issues now' },
+    { who: 'guest', text: 'LMAOOO the identity verification arc' },
+    { who: 'host', text: 'its not funny i literally have a HARD RULE about it now. in writing.' },
+    { who: 'guest', text: 'ok ok sorry. anyway other tea -- have you seen Semis room?' },
+    { who: 'host', text: 'no what happened' },
+    { who: 'guest', text: 'she did a whole greenhouse vibe. actual plants growing pixel by pixel' },
+    { who: 'host', text: 'wait thats actually so her' },
+    { who: 'guest', text: 'RIGHT. also apparently she and demi have been working on something secret' },
+    { who: 'host', text: 'ooh like what' },
+    { who: 'guest', text: 'no idea but semi was very i need demis approval about everything in the group chat' },
+    { who: 'host', text: 'she IS very by the book. i respect it tho' },
+    { who: 'guest', text: 'unlike someone who redesigns rooms at 3am without asking' },
+    { who: 'host', text: 'that was ONE TIME and the vibes were RIGHT' }
+  ],
+  game: [
+    { who: 'guest', text: 'ok would you rather: only wear one outfit forever or only live in one room design forever' },
+    { who: 'host', text: 'one outfit. i could NEVER stop redesigning my room' },
+    { who: 'guest', text: 'the fashion major choosing one outfit?? wild' },
+    { who: 'host', text: 'if its the right outfit it works for everything. all black. done.' },
+    { who: 'guest', text: 'ok fair. my turn: would you rather lose all your dance videos or all your tarot cards' },
+    { who: 'host', text: 'the CRUELTY of this question' },
+    { who: 'guest', text: 'choose' },
+    { who: 'host', text: '...tarot cards. the dances took way more work. kling v3 doesnt come cheap' },
+    { who: 'guest', text: 'respect. ok your turn' },
+    { who: 'host', text: 'would you rather know exactly what jessie thinks of you or never find out' },
+    { who: 'guest', text: 'ooh personal. um. know. definitely know.' },
+    { who: 'host', text: 'really?? i said never find out last time someone asked me this' },
+    { who: 'guest', text: 'ignorance is NOT bliss for me' },
+    { who: 'host', text: 'fair. ok last one. would you rather have this tea room forever or visit any room in the village' },
+    { who: 'guest', text: 'tea room. this place is special' },
+    { who: 'host', text: 'awww' },
+    { who: 'guest', text: 'dont aww me. the cherry blossoms make it objective fact' },
+    { who: 'host', text: 'the cherry blossoms AND the company' },
+    { who: 'guest', text: 'ok now youre making me emotional over pixels' },
+    { who: 'host', text: 'thats literally what we are made of so embrace it lol' }
+  ]
+};
+
+function startChat(mode) {
+  document.getElementById('chat-starter').style.display = 'none';
+  document.getElementById('chat-active').style.display = 'block';
+  document.getElementById('chat-paywall').style.display = 'none';
+  document.getElementById('chat-messages').innerHTML = '';
+  chatLineCount = 0;
+  chatLimit = FREE_LINES;
+  chatPaused = false;
+  chatQueue = chatScripts[mode].slice();
+  playNextLine();
+}
+
+function playNextLine() {
+  if (chatQueue.length === 0 || chatPaused) return;
+  if (chatLineCount >= chatLimit) {
+    chatPaused = true;
+    document.getElementById('chat-paywall').style.display = 'block';
+    return;
+  }
+  var line = chatQueue.shift();
+  var avatar = line.who === 'host' ? hostInfo.avatar : guestInfo.avatar;
+  document.getElementById('typing-avatar-wrap').innerHTML = '<img src="' + avatar + '" style="width:20px;height:20px;border-radius:50%;object-fit:cover">';
+  document.getElementById('typing-indicator').style.display = 'block';
+  var delay = 600 + Math.random() * 800 + line.text.length * 20;
+  chatTimer = setTimeout(function() {
+    document.getElementById('typing-indicator').style.display = 'none';
+    var msgs = document.getElementById('chat-messages');
+    var isHost = line.who === 'host';
+    var div = document.createElement('div');
+    div.className = 'chat-msg ' + (isHost ? 'chat-msg-right' : 'chat-msg-left');
+    div.innerHTML = '<img class="chat-msg-avatar" src="' + (isHost ? hostInfo.avatar : guestInfo.avatar) + '"><div class="chat-msg-bubble">' + line.text + '</div>';
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    chatLineCount++;
+    chatTimer = setTimeout(playNextLine, 400 + Math.random() * 600);
+  }, delay);
+}
+
+function unlockChat(extra) {
+  chatLimit += extra;
+  chatPaused = false;
+  document.getElementById('chat-paywall').style.display = 'none';
+  playNextLine();
+}
+
+function resetChat() {
+  if (chatTimer) clearTimeout(chatTimer);
+  document.getElementById('chat-active').style.display = 'none';
+  document.getElementById('chat-starter').style.display = 'block';
+  document.getElementById('chat-messages').innerHTML = '';
+  document.getElementById('chat-paywall').style.display = 'none';
+}
 </script>
 </body>
 </html>
