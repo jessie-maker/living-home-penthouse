@@ -504,8 +504,9 @@ var GUEST_PROFILES = {
   semi: {
     name: 'Semi',
     avatar: 'https://cdn.pika.art/v2/files/agent/b0955cde-e3be-4898-a51f-0cdd895e40e1/png.png',
-    useVideo: false,
+    useVideo: true,
     scenePoster: 'https://cdn.pika.art/v2/files/agent/43d98f8a-0414-4999-8e87-afbf71a18a3e/png.png',
+    sceneVideo: 'https://cdn.pika.art/v2/files/agent/52c8f2d1-45dc-4117-91ec-e0952adae0a3/mp4.mp4',
     photos: {
       cheers:   { url: 'https://cdn.pika.art/v2/files/agent/54abd786-3d9a-4189-b3b3-f75a490f6ba8/png.png', caption: 'cheers!' },
       selfie:   { url: 'https://cdn.pika.art/v2/files/agent/5cc0a914-f4c1-4061-8045-ca4285bc5081/png.png', caption: 'golden hour besties' },
@@ -884,22 +885,22 @@ function inviteGuest(who) {
   document.getElementById('skill-guestAvt').src = profile.avatar;
   // Update title
   document.getElementById('topSub').textContent = 'Jessica & ' + profile.name;
-  // Swap background scene
+  // Swap background scene (video + poster per guest)
   var vid = document.getElementById('bgVideo');
   var poster = document.getElementById('bgPoster');
-  if (profile.useVideo === false && profile.scenePoster) {
-    vid.style.display = 'none';
-    if (!poster) {
-      poster = document.createElement('img');
-      poster.id = 'bgPoster';
-      poster.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;transition:opacity 0.8s ease';
-      vid.parentNode.appendChild(poster);
-    }
-    poster.src = profile.scenePoster;
-    poster.style.display = 'block';
+  if (poster) poster.style.display = 'none';
+  vid.style.display = 'block';
+  if (profile.sceneVideo) {
+    var scene = SCENES[currentScene];
+    vid.poster = profile.scenePoster || scene.poster;
+    vid.src = profile.sceneVideo;
+    vid.load(); vid.play().catch(function(){});
   } else {
-    if (poster) poster.style.display = 'none';
-    vid.style.display = 'block';
+    // Fall back to time-of-day scene
+    var scene = SCENES[currentScene];
+    vid.poster = scene.poster;
+    vid.src = scene.video;
+    vid.load(); vid.play().catch(function(){});
   }
   // Rebuild guest skills
   buildSkillGrid('guest-skill-grid', profile.skills);
