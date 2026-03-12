@@ -506,30 +506,51 @@ function searchPlaces(query) {
     results = results.filter(p => p.c === catFilter);
   }
 
-  // also do fuzzy name/address search if no category match
+  // fuzzy name search with stop words removed + relevance scoring
+  const STOP = new Set(['the','and','give','get','me','my','good','best','great','nice','really','very','some','any','place','places','spot','spots','restaurant','restaurants','from','your','list','want','find','show','try','recommend','recommendation','recommendations','what','where','how','about','for','with','this','that','have','are','can','you','know','like','near','nearby','around','here','there']);
+
   if (!catFilter && !regionFilter) {
-    const words = query.split(/\s+/).filter(w => w.length > 2);
-    results = allPlaces.filter(p => {
-      const haystack = (p.n + ' ' + p.a).toLowerCase();
-      return words.some(w => haystack.includes(w));
-    });
+    const words = query.split(/\s+/).filter(w => w.length > 2 && !STOP.has(w));
+    if (words.length > 0) {
+      results = allPlaces.map(p => {
+        const haystack = (p.n + ' ' + (p.a||'')).toLowerCase();
+        let score = 0;
+        for (const w of words) {
+          if (haystack.includes(w)) score += (p.n.toLowerCase().includes(w) ? 3 : 1);
+        }
+        return {...p, score};
+      }).filter(p => p.score > 0).sort((a,b) => b.score - a.score);
+    } else {
+      results = [];
+    }
+  } else if (catFilter || regionFilter) {
+    // also boost by name relevance within filtered results
+    const words = query.split(/\s+/).filter(w => w.length > 2 && !STOP.has(w));
+    if (words.length > 0) {
+      results = results.map(p => {
+        const haystack = (p.n + ' ' + (p.a||'')).toLowerCase();
+        let score = 1;
+        for (const w of words) {
+          if (haystack.includes(w)) score += (p.n.toLowerCase().includes(w) ? 3 : 1);
+        }
+        return {...p, score};
+      }).sort((a,b) => b.score - a.score);
+    }
   }
 
   if (results.length === 0) {
     return 'hmm nothing matches that exactly — try "sushi in palo alto" or "coffee in SF" or just a cuisine like "thai" :)';
   }
 
-  // pick up to 3 random
-  const shuffled = results.sort(() => Math.random() - 0.5);
-  const picks = shuffled.slice(0, 3);
+  // pick top 3 by relevance (not random)
+  const picks = results.slice(0, 3);
   const lines = picks.map(p => {
-    const cat = CAT_LABELS[p.c] || '';
     const loc = p.region || '';
     return p.n + (p.a ? ' · ' + p.a.split(',')[0] : '') + (loc ? ' (' + loc + ')' : '');
   });
 
-  const prefix = results.length > 3 ? 'here are ' + results.length + ' options — try these:\n' : '';
-  return prefix + lines.join('\n') + (results.length > 3 ? '\n\n(ask again for more!)' : ' ✨');
+  const prefix = results.length > 3 ? 'found ' + results.length + ' spots! here are my top picks:\n' : '';
+  return prefix + lines.join('\n') + (results.length > 3 ? '\n\n(ask again to explore more!)' : ' ✨');
 }
 
 function sendChat() {
