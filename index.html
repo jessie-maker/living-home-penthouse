@@ -136,6 +136,7 @@ body{background:#0a0a0a;font-family:'Inter',-apple-system,sans-serif;color:#fff;
 .tarot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .tarot-card{aspect-ratio:2/3;border-radius:12px;overflow:hidden;cursor:pointer;position:relative;transition:transform 0.3s}
 .tarot-card:active{transform:scale(0.96)}
+.tarot-learn-btn{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,rgba(168,85,247,0.5),rgba(139,92,246,0.5));border:1px solid rgba(168,85,247,0.3);border-radius:8px;padding:4px 14px;font-size:11px;color:#fff;font-weight:600;text-transform:uppercase;letter-spacing:1px;backdrop-filter:blur(4px)}
 .tarot-inner{position:relative;width:100%;height:100%;overflow:hidden;border-radius:12px;border:1px solid rgba(255,255,255,0.1)}
 .tarot-bg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.4;filter:saturate(0.7)}
 .tarot-number{position:absolute;top:8px;left:10px;font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:700;color:rgba(255,255,255,0.5)}
@@ -704,7 +705,7 @@ function enterRoom() {
 function buildSkillGrid(gridId, skills) {
   var grid = document.getElementById(gridId);
   grid.innerHTML = '';
-  skills.forEach(function(s) {
+  skills.forEach(function(s, idx) {
     var card = TAROT_CARDS[s.category] || TAROT_CARDS.knowledge;
     var div = document.createElement('div');
     div.className = 'tarot-card';
@@ -715,9 +716,62 @@ function buildSkillGrid(gridId, skills) {
       '<div class="tarot-glyph">' + s.glyph + '</div>' +
       '<div class="tarot-name">' + s.name + '</div>' +
       '<div class="tarot-desc">' + s.desc + '</div>' +
+      (s.tutorial ? '<div class="tarot-learn-btn">Learn</div>' : '') +
       '</div></div>';
+    if (s.tutorial) {
+      div.onclick = function() { showSkillTutorial(s); };
+    }
     grid.appendChild(div);
   });
+}
+
+function showSkillTutorial(skill) {
+  var overlay = document.getElementById('modal-skill-detail');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'modal-skill-detail';
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = '<div class="modal-card" style="max-height:85vh">' +
+      '<div class="modal-handle"></div>' +
+      '<div class="modal-icon" id="sd-icon"></div>' +
+      '<div class="modal-title" id="sd-title"></div>' +
+      '<div class="modal-desc" id="sd-desc"></div>' +
+      '<div id="sd-steps" style="text-align:left;padding:16px 0"></div>' +
+      '<div style="display:flex;gap:8px;justify-content:center;margin-top:16px">' +
+      '<button onclick="closeSkillDetail()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:10px 20px;color:#fff;font-size:14px;cursor:pointer">Got it</button>' +
+      '<button onclick="askToTeach()" style="background:linear-gradient(135deg,rgba(168,85,247,0.4),rgba(139,92,246,0.4));border:1px solid rgba(168,85,247,0.3);border-radius:12px;padding:10px 20px;color:#fff;font-size:14px;cursor:pointer;font-weight:600">Ask to teach me</button>' +
+      '</div></div>';
+    overlay.onclick = function(e) { if (e.target === overlay) closeSkillDetail(); };
+    document.body.appendChild(overlay);
+  }
+  document.getElementById('sd-icon').textContent = skill.glyph;
+  document.getElementById('sd-title').textContent = skill.name;
+  document.getElementById('sd-desc').textContent = skill.desc;
+  var stepsHtml = '';
+  skill.tutorial.forEach(function(step, i) {
+    var isLast = step.startsWith('Tip:');
+    stepsHtml += '<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px;' +
+      (isLast ? 'background:rgba(255,149,0,0.08);border:1px solid rgba(255,149,0,0.15);border-radius:10px;padding:10px 12px;margin-top:8px' : '') +
+      '">' +
+      (isLast ? '<span style="font-size:16px">💡</span>' : '<span style="min-width:22px;height:22px;border-radius:50%;background:rgba(168,85,247,0.2);display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(168,85,247,0.9);font-weight:700">' + (i+1) + '</span>') +
+      '<span style="font-size:13px;color:rgba(255,255,255,0.75);line-height:1.5">' + step + '</span></div>';
+  });
+  document.getElementById('sd-steps').innerHTML = stepsHtml;
+  window._currentSkillName = skill.name;
+  overlay.style.display = 'flex';
+  setTimeout(function() { overlay.querySelector('.modal-card').style.transform = 'translateY(0)'; }, 10);
+}
+
+function closeSkillDetail() {
+  var overlay = document.getElementById('modal-skill-detail');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function askToTeach() {
+  closeSkillDetail();
+  closeModal('modal-skills');
+  var name = window._currentSkillName || 'this skill';
+  showToast('Sent request to learn ' + name + '!\nThey will teach you next time you visit ✨');
 }
 
 function exitRoom() {
