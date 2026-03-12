@@ -471,7 +471,11 @@ const REGION_ALIASES = {
 };
 
 function searchPlaces(query) {
-  const allPlaces = [...PLACES.nyc.map(p=>({...p,region:'NYC'})), ...PLACES.bayarea.map(p=>({...p,region:p.r||'Bay Area'}))];
+  // Scope to current tab by default
+  const tabPlaces = currentTab === 'nyc'
+    ? PLACES.nyc.map(p=>({...p,region:'NYC'}))
+    : PLACES.bayarea.map(p=>({...p,region:p.r||'Bay Area'}));
+  const allPlaces = tabPlaces;
 
   // detect region filter
   let regionFilter = null;
