@@ -374,13 +374,18 @@ function makeIcon(cat) {
   return L.divIcon({ html: svg, iconSize: [22,28], iconAnchor: [11,28], popupAnchor: [0,-28], className: '' });
 }
 
+function gmapsUrl(p) {
+  return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.n + ' ' + (p.a||''));
+}
+
 function buildPopup(p) {
   const color = CAT_COLORS[p.c] || '#888';
   const label = CAT_LABELS[p.c] || 'Other';
   const addr = p.a ? `<div class="popup-addr">${escHtml(p.a)}</div>` : '';
+  const link = `<a href="${gmapsUrl(p)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;padding:4px 10px;background:${color};color:#fff;border-radius:6px;font-size:11px;text-decoration:none;font-weight:600">View on Google Maps ↗</a>`;
   return `<div class="popup-name">${escHtml(p.n)}</div>
   <div class="popup-cat"><span class="popup-cat-dot" style="background:${color}"></span>${label}</div>
-  ${addr}`;
+  ${addr}${link}`;
 }
 
 function buildMarkers() {
@@ -539,18 +544,12 @@ function searchPlaces(query) {
   }
 
   if (results.length === 0) {
-    return 'hmm nothing matches that exactly — try "sushi in palo alto" or "coffee in SF" or just a cuisine like "thai" :)';
+    return { picks: [], total: 0 };
   }
 
-  // pick top 3 by relevance (not random)
+  // pick top 3 by relevance
   const picks = results.slice(0, 3);
-  const lines = picks.map(p => {
-    const loc = p.region || '';
-    return p.n + (p.a ? ' · ' + p.a.split(',')[0] : '') + (loc ? ' (' + loc + ')' : '');
-  });
-
-  const prefix = results.length > 3 ? 'found ' + results.length + ' spots! here are my top picks:\n' : '';
-  return prefix + lines.join('\n') + (results.length > 3 ? '\n\n(ask again to explore more!)' : ' ✨');
+  return { picks, total: results.length };
 }
 
 function sendChat() {
@@ -565,18 +564,79 @@ function sendChat() {
   msgs.appendChild(userMsg);
 
   const lower = text.toLowerCase();
-  let response = searchPlaces(lower);
+  const result = searchPlaces(lower);
 
   setTimeout(() => {
     const botMsg = document.createElement('div');
     botMsg.className = 'msg bot';
-    botMsg.innerHTML = response.replace(/\n/g, "<br>");
+
+    if (result.picks.length === 0) {
+      botMsg.textContent = 'hmm nothing matches that — try "sushi in palo alto" or "coffee in SF" or just a cuisine like "thai" :)';
+    } else {
+      const header = result.total > 3
+        ? `<div style="margin-bottom:8px">found ${result.total} spots! here are my top picks:</div>`
+        : '';
+      const cards = result.picks.map(p => {
+        const color = CAT_COLORS[p.c] || '#888';
+        const label = CAT_LABELS[p.c] || 'Other';
+        const gurl = gmapsUrl(p);
+        return `<div class="rec-card" data-lat="${p.lat}" data-lng="${p.lng}" data-name="${escHtml(p.n)}" onclick="flyToPlace(this)" style="cursor:pointer;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 12px;margin-bottom:6px">
+          <div style="font-weight:600;font-size:13px;color:var(--text)">${escHtml(p.n)}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:4px;vertical-align:middle"></span>${label}${p.region ? ' · ' + p.region : ''}</div>
+          ${p.a ? '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + escHtml(p.a.split(',')[0]) + '</div>' : ''}
+          <div style="margin-top:6px;display:flex;gap:6px">
+            <span style="font-size:10px;color:var(--warm);text-decoration:underline;cursor:pointer" onclick="event.stopPropagation();flyToPlace(this.closest('.rec-card'))">📍 Show on map</span>
+            <a href="${gurl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:10px;color:var(--warm);text-decoration:underline">↗ Google Maps</a>
+          </div>
+        </div>`;
+      }).join('');
+      const footer = result.total > 3 ? '<div style="font-size:11px;color:var(--text3);margin-top:4px">(ask again to explore more!)</div>' : '';
+      botMsg.innerHTML = header + cards + footer;
+    }
+
     msgs.appendChild(botMsg);
     msgs.scrollTop = msgs.scrollHeight;
   }, 350);
 
   input.value = '';
   msgs.scrollTop = msgs.scrollHeight;
+}
+
+function flyToPlace(card) {
+  const lat = parseFloat(card.dataset.lat);
+  const lng = parseFloat(card.dataset.lng);
+  const name = card.dataset.name;
+
+  // switch to correct tab
+  const isNyc = PLACES.nyc.some(p => Math.abs(p.lat-lat)<0.001 && Math.abs(p.lng-lng)<0.001);
+  if (isNyc && currentTab !== 'nyc') switchTab('nyc');
+  if (!isNyc && currentTab !== 'bayarea') switchTab('bayarea');
+
+  // fly to location
+  map.flyTo([lat, lng], 16, { duration: 0.8 });
+
+  // find and open the marker popup
+  setTimeout(() => {
+    const markers = allMarkers[currentTab] || [];
+    const places = currentTab === 'nyc' ? PLACES.nyc : PLACES.bayarea;
+    for (let i = 0; i < places.length; i++) {
+      if (Math.abs(places[i].lat - lat) < 0.0001 && Math.abs(places[i].lng - lng) < 0.0001) {
+        const marker = markers[i];
+        if (marker) {
+          if (clusterGroup && clusterGroup.hasLayer(marker)) {
+            clusterGroup.zoomToShowLayer(marker, () => { marker.openPopup(); });
+          } else {
+            marker.openPopup();
+          }
+        }
+        break;
+      }
+    }
+  }, 900);
+
+  // pulse highlight on the card
+  card.style.boxShadow = '0 0 12px var(--warm)';
+  setTimeout(() => { card.style.boxShadow = ''; }, 1500);
 }
 
 document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
