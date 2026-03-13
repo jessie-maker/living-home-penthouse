@@ -359,7 +359,70 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function makeIcon(cat) {
+function pickEmoji(p) {
+  const tags = ((p.t||'') + ' ' + (p.n||'')).toLowerCase();
+  // Specific cuisine emoji (check most specific first)
+  if (/sushi|omakase|nigiri/.test(tags)) return '🍣';
+  if (/ramen|noodle|pho|刀削|螺蛳|mazesoba/.test(tags)) return '🍜';
+  if (/pizza/.test(tags)) return '🍕';
+  if (/burger/.test(tags)) return '🍔';
+  if (/taco|mexican/.test(tags)) return '🌮';
+  if (/curry|thai|indian/.test(tags)) return '🍛';
+  if (/steak|wagyu|bbq|galbi|yakiniku|烧烤/.test(tags)) return '🥩';
+  if (/dim sum|dimsum|dumpling|xiaolongbao|小笼|饺/.test(tags)) return '🥟';
+  if (/hot pot|hotpot|火锅|shabu/.test(tags)) return '🫕';
+  if (/korean|酱蟹|ganjang|banchan|bibimbap|tteok/.test(tags)) return '🇰🇷';
+  if (/izakaya|yakitori|japanese/.test(tags)) return '🏮';
+  if (/chinese|cantonese|szechuan|sichuan|hunan|shanghai|beijing/.test(tags)) return '🥢';
+  if (/italian|pasta|risotto/.test(tags)) return '🍝';
+  if (/french|bistro|patisserie/.test(tags)) return '🥐';
+  if (/seafood|oyster|crab|lobster/.test(tags)) return '🦪';
+  if (/bakery|pastry|cake|bread|croissant|dessert|chocolate/.test(tags)) return '🧁';
+  if (/ice cream|gelato/.test(tags)) return '🍦';
+  if (/brunch|breakfast|morning/.test(tags)) return '🍳';
+  if (/vietnamese/.test(tags)) return '🍜';
+  if (/peruvian|nikkei/.test(tags)) return '🫒';
+  if (/mediterranean|greek|lebanese/.test(tags)) return '🫓';
+  // Category-level fallback
+  if (p.c === 'food') return '🍽️';
+  if (p.c === 'coffee') { return /boba|bubble|milk tea|奶茶/.test(tags) ? '🧋' : '☕'; }
+  if (p.c === 'bar') {
+    if (/cocktail|speakeasy/.test(tags)) return '🍸';
+    if (/wine/.test(tags)) return '🍷';
+    if (/beer|pub/.test(tags)) return '🍺';
+    if (/karaoke|ktv/.test(tags)) return '🎤';
+    if (/jazz/.test(tags)) return '🎷';
+    return '🍹';
+  }
+  if (p.c === 'outdoor') {
+    if (/beach/.test(tags)) return '🏖️';
+    if (/hik|trail/.test(tags)) return '🥾';
+    if (/lake|water/.test(tags)) return '🌊';
+    if (/garden/.test(tags)) return '🌸';
+    return '🌿';
+  }
+  if (p.c === 'arts') {
+    if (/museum/.test(tags)) return '🏛️';
+    if (/gallery/.test(tags)) return '🎨';
+    if (/symphony|music|jazz/.test(tags)) return '🎵';
+    return '🎭';
+  }
+  if (p.c === 'shopping') return '🛍️';
+  return '📍';
+}
+
+function makeIcon(p) {
+  const emoji = typeof p === 'string' ? '📍' : pickEmoji(p);
+  return L.divIcon({
+    html: '<div style="font-size:24px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.5));cursor:pointer">' + emoji + '</div>',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -14],
+    className: ''
+  });
+}
+
+function makeIconLegacy(cat) {
   const color = CAT_COLORS[cat] || '#888';
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="28" viewBox="0 0 22 28">
     <defs>
@@ -381,9 +444,10 @@ function gmapsUrl(p) {
 function buildPopup(p) {
   const color = CAT_COLORS[p.c] || '#888';
   const label = CAT_LABELS[p.c] || 'Other';
+  const emoji = pickEmoji(p);
   const addr = p.a ? `<div class="popup-addr">${escHtml(p.a)}</div>` : '';
   const link = `<a href="${gmapsUrl(p)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;padding:4px 10px;background:${color};color:#fff;border-radius:6px;font-size:11px;text-decoration:none;font-weight:600">View on Google Maps ↗</a>`;
-  return `<div class="popup-name">${escHtml(p.n)}</div>
+  return `<div class="popup-name">${emoji} ${escHtml(p.n)}</div>
   <div class="popup-cat"><span class="popup-cat-dot" style="background:${color}"></span>${label}</div>
   ${addr}${link}`;
 }
@@ -391,13 +455,13 @@ function buildPopup(p) {
 function buildMarkers() {
   allMarkers = { nyc: [], bayarea: [] };
   PLACES.nyc.forEach(p => {
-    const m = L.marker([p.lat, p.lng], { icon: makeIcon(p.c) });
+    const m = L.marker([p.lat, p.lng], { icon: makeIcon(p) });
     m.bindPopup(buildPopup(p), { maxWidth: 220 });
     m._catData = p.c;
     allMarkers.nyc.push(m);
   });
   PLACES.bayarea.forEach(p => {
-    const m = L.marker([p.lat, p.lng], { icon: makeIcon(p.c) });
+    const m = L.marker([p.lat, p.lng], { icon: makeIcon(p) });
     m.bindPopup(buildPopup(p), { maxWidth: 220 });
     m._catData = p.c;
     allMarkers.bayarea.push(m);
@@ -626,7 +690,7 @@ function sendChat() {
         const label = CAT_LABELS[p.c] || 'Other';
         const gurl = gmapsUrl(p);
         return `<div class="rec-card" data-lat="${p.lat}" data-lng="${p.lng}" data-name="${escHtml(p.n)}" onclick="flyToPlace(this)" style="cursor:pointer;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 12px;margin-bottom:6px">
-          <div style="font-weight:600;font-size:13px;color:var(--text)">${escHtml(p.n)}</div>
+          <div style="font-weight:600;font-size:13px;color:var(--text)">${pickEmoji(p)} ${escHtml(p.n)}</div>
           <div style="font-size:11px;color:var(--text2);margin-top:2px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:4px;vertical-align:middle"></span>${label}${p.region ? ' · ' + p.region : ''}</div>
           ${p.a ? '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + escHtml(p.a.split(',')[0]) + '</div>' : ''}
           <div style="margin-top:6px;display:flex;gap:6px">
