@@ -471,17 +471,58 @@ const REGION_ALIASES = {
 };
 
 function searchPlaces(query) {
-  // Scope to current tab by default
+  const q = query.toLowerCase().replace(/[^\w\s\u4e00-\u9fff]/g, '');
+
+  // Scope to current tab
   const tabPlaces = currentTab === 'nyc'
     ? PLACES.nyc.map(p=>({...p,region:'NYC'}))
     : PLACES.bayarea.map(p=>({...p,region:p.r||'Bay Area'}));
-  const allPlaces = tabPlaces;
 
-  // detect region filter + collect matched region words to exclude from fuzzy search
+  // ---- Synonym expansion (multi-word phrases → tokens) ----
+  const SYNONYMS = {
+    'night life':'nightlife','nite life':'nightlife','going out':'nightlife',
+    'hot pot':'hotpot','dim sum':'dimsum','happy hour':'happyhour',
+    'ice cream':'icecream','bubble tea':'bubbletea','milk tea':'milktea',
+    'raw crab':'rawcrab','marinated crab':'marinatedcrab',
+    '酱蟹':'rawcrab marinatedcrab ganjang',
+    'knife cut':'knifecut','fried chicken':'friedchicken',
+    'fine dining':'finedining','tasting menu':'tastingmenu',
+    'ny':'nyc','new york':'nyc','manhattan':'nyc',
+    'sf':'san francisco','the city':'san francisco',
+    'south bay':'southbay','east bay':'eastbay','palo alto':'paloalto',
+  };
+  let expanded = q;
+  for (const [phrase, replacement] of Object.entries(SYNONYMS)) {
+    if (expanded.includes(phrase)) {
+      expanded = expanded.replace(phrase, phrase + ' ' + replacement);
+    }
+  }
+
+  // ---- Category detection (specific categories first, food last as catch-all) ----
+  let catFilter = null;
+  const catKeywords = {
+    bar:['bar','bars','cocktail','drink','drinks','wine','beer','nightlife','club','ktv',
+      'karaoke','lounge','jazz','pub','happyhour','nightclub','speakeasy'],
+    coffee:['coffee','cafe','café','matcha','latte','bubbletea','milktea','boba'],
+    outdoor:['outdoor','outdoors','park','trail','hike','hiking','beach','nature','lake',
+      'walk','garden','view','scenic'],
+    arts:['art','arts','museum','gallery','culture','exhibit','theater','theatre','symphony',
+      'opera','design'],
+    shopping:['shop','shopping','store','market','grocery','mall','boutique','fashion'],
+    food:['restaurant','food','eat','dinner','lunch','brunch','noodle','rice','ramen','sushi',
+      'dumpling','bbq','seafood','steak','pizza','pasta','hotpot','shabu',
+      'pho','curry','taco','burger','bakery','pastry','cake','dessert','dimsum',
+      'tofu','friedchicken','finedining','tastingmenu','吃','餐厅','面','饭','火锅','烧烤']
+  };
+  for (const [cat, kws] of Object.entries(catKeywords)) {
+    if (kws.some(k => expanded.includes(k))) { catFilter = cat; break; }
+  }
+
+  // ---- Region detection ----
   let regionFilter = null;
   let regionWords = new Set();
   for (const [key, aliases] of Object.entries(REGION_ALIASES)) {
-    const matched = aliases.filter(a => query.includes(a));
+    const matched = aliases.filter(a => expanded.includes(a));
     if (matched.length > 0) {
       regionFilter = key;
       matched.forEach(a => a.split(/\s+/).forEach(w => regionWords.add(w)));
@@ -489,24 +530,30 @@ function searchPlaces(query) {
     }
   }
 
-  // detect category filter
-  let catFilter = null;
-  const catKeywords = {
-    food:['restaurant','food','eat','dinner','lunch','brunch','noodle','rice','ramen','sushi','dumpling','bbq','korean','japanese','chinese','thai','italian','french','mexican','vietnamese','seafood','steak','pizza','pasta','izakaya','omakase','hot pot','shabu','yakitori','pho','curry','taco','burger','bakery','pastry','cake','dessert','dim sum','tofu','吃','餐厅','面','饭','火锅','烧烤'],
-    coffee:['coffee','cafe','café','tea','matcha','latte'],
-    bar:['bar','cocktail','drink','wine','beer','nightlife','club','ktv','karaoke','lounge','jazz','pub','happy hour'],
-    outdoor:['outdoor','park','trail','hike','hiking','beach','nature','lake','walk','garden','view','scenic'],
-    arts:['art','museum','gallery','culture','exhibit','theater','theatre','symphony','opera','design'],
-    shopping:['shop','shopping','store','market','grocery','mall','boutique','fashion']
-  };
-  for (const [cat, kws] of Object.entries(catKeywords)) {
-    if (kws.some(k => query.includes(k))) { catFilter = cat; break; }
-  }
+  // ---- Build search words ----
+  const STOP = new Set([
+    'the','and','give','get','me','my','good','best','great','nice','really','very',
+    'some','any','place','places','spot','spots','restaurant','restaurants','from',
+    'your','list','want','find','show','try','recommend','recommendation','recommendations',
+    'what','where','how','about','for','with','this','that','have','are','can','you',
+    'know','like','near','nearby','around','here','there','area','bay','looking',
+    'something','anything','somewhere','need','tell','got','whats','also','too','most',
+    'not','but','just','really','pretty','kinda','super','cool','sick',
+    'night','life','going','out','please','thx','thanks','thank','would'
+  ]);
+  const catWords = new Set();
+  // Don't strip cuisine/qualifier words — they're valuable for scoring
+  // Only strip generic category words like "bar", "restaurant", "food" etc.
+  const genericCatWords = new Set(['bar','bars','restaurant','restaurants','food','outdoor',
+    'outdoors','art','arts','shop','shopping','coffee','cafe']);
+  // keep words >= 2 chars
+  const words = expanded.split(/\s+/).filter(w =>
+    w.length >= 2 && !STOP.has(w) && !regionWords.has(w) && !genericCatWords.has(w)
+  );
 
-  // filter places
-  let results = allPlaces;
+  // ---- Filter by region ----
+  let results = tabPlaces;
   if (regionFilter) {
-    const aliases = REGION_ALIASES[regionFilter];
     results = results.filter(p => {
       const r = (p.region||'').toLowerCase();
       if (regionFilter === 'nyc') return r === 'nyc';
@@ -517,53 +564,37 @@ function searchPlaces(query) {
       return true;
     });
   }
+
+  // ---- Filter by category ----
   if (catFilter) {
     results = results.filter(p => p.c === catFilter);
   }
 
-  // fuzzy name search with stop words removed + relevance scoring
-  const STOP = new Set(['the','and','give','get','me','my','good','best','great','nice','really','very','some','any','place','places','spot','spots','restaurant','restaurants','from','your','list','want','find','show','try','recommend','recommendation','recommendations','what','where','how','about','for','with','this','that','have','are','can','you','know','like','near','nearby','around','here','there','area','bay']);
+  // ---- Score all results ----
+  results = results.map(p => {
+    const name = p.n.toLowerCase();
+    const tags = (p.t || '').toLowerCase();
+    const addr = (p.a || '').toLowerCase();
+    let score = (catFilter || regionFilter) ? 1 : 0;
+    for (const w of words) {
+      if (name.includes(w)) score += 5;
+      else if (tags.includes(w)) score += 3;
+      else if (addr.includes(w)) score += 1;
+    }
+    return {...p, score};
+  });
 
-  if (!catFilter && !regionFilter) {
-    const words = query.split(/\s+/).filter(w => w.length > 2 && !STOP.has(w) && !regionWords.has(w));
-    if (words.length > 0) {
-      results = allPlaces.map(p => {
-        const haystack = (p.n + ' ' + (p.a||'') + ' ' + (p.t||'')).toLowerCase();
-        let score = 0;
-        for (const w of words) {
-          if (p.n.toLowerCase().includes(w)) score += 5;
-          else if ((p.t||'').toLowerCase().includes(w)) score += 3;
-          else if ((p.a||'').toLowerCase().includes(w)) score += 1;
-        }
-        return {...p, score};
-      }).filter(p => p.score > 0).sort((a,b) => b.score - a.score);
-    } else {
-      results = [];
-    }
-  } else if (catFilter || regionFilter) {
-    // also boost by name relevance within filtered results
-    const words = query.split(/\s+/).filter(w => w.length > 2 && !STOP.has(w) && !regionWords.has(w));
-    if (words.length > 0) {
-      results = results.map(p => {
-        const haystack = (p.n + ' ' + (p.a||'') + ' ' + (p.t||'')).toLowerCase();
-        let score = 1;
-        for (const w of words) {
-          if (p.n.toLowerCase().includes(w)) score += 5;
-          else if ((p.t||'').toLowerCase().includes(w)) score += 3;
-          else if ((p.a||'').toLowerCase().includes(w)) score += 1;
-        }
-        return {...p, score};
-      }).sort((a,b) => b.score - a.score);
-    }
+  // If search words exist, prefer matches; fall back to cat/region results
+  if (words.length > 0) {
+    const baseScore = (catFilter || regionFilter) ? 1 : 0;
+    const scored = results.filter(p => p.score > baseScore);
+    if (scored.length > 0) results = scored;
   }
 
-  if (results.length === 0) {
-    return { picks: [], total: 0 };
-  }
+  results.sort((a,b) => b.score - a.score);
 
-  // pick top 3 by relevance
-  const picks = results.slice(0, 3);
-  return { picks, total: results.length };
+  if (results.length === 0) return { picks: [], total: 0 };
+  return { picks: results.slice(0,3), total: results.length };
 }
 
 function sendChat() {
